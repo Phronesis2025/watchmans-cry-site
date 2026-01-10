@@ -1,4 +1,3 @@
-// vercel.json – updated for Vercel 2025+ static sites
 {
   "version": 2,
   "public": true,
