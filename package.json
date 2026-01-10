@@ -1,0 +1,11 @@
+{
+  "name": "the-watchmans-cry",
+  "version": "1.0.0",
+  "description": "The Watchman's Cry: Common Sense Reborn - Static Website",
+  "scripts": {
+    "dev": "http-server -p 8000 -o"
+  },
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  }
+}

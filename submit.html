@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Submit - The Watchman's Cry</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Masthead -->
+        <header>
+            <h1>The Watchman's Cry</h1>
+            <h2>Common Sense Reborn</h2>
+            <hr class="divider">
+        </header>
+
+        <!-- Navigation menu -->
+        <nav>
+            <ul>
+                <li><a href="index.html">Home</a></li>
+                <li><a href="archive.html">Archive</a></li>
+                <li><a href="about.html">About</a></li>
+                <li><a href="staff.html">Staff</a></li>
+                <li><a href="submit.html">Submit</a></li>
+            </ul>
+        </nav>
+
+        <!-- Submit Content -->
+        <section>
+            <h2>Common Man's Counsel: Submit Your Question</h2>
+            <p class="drop-cap">We invite all readers to submit questions, concerns, or topics for discussion. The Common Man's Counsel section addresses matters that affect the daily lives of ordinary people, applying the principles of common sense to real-world situations.</p>
+            <p>Your name and email are optional—we respect your privacy. However, providing contact information allows us to follow up if needed. All questions are considered for publication, though we may edit for clarity and length.</p>
+
+            <hr class="divider">
+
+            <!-- Submission Form -->
+            <form action="mailto:placeholder@email.com" method="post" enctype="text/plain">
+                <label for="name">Your Name (Optional):</label>
+                <input type="text" id="name" name="name" placeholder="John Doe">
+
+                <label for="email">Your Email (Optional):</label>
+                <input type="email" id="email" name="email" placeholder="your.email@example.com">
+
+                <label for="question">Your Question or Concern:</label>
+                <textarea id="question" name="question" required placeholder="Please enter your question or concern here. We will consider it for publication in the Common Man's Counsel section."></textarea>
+
+                <button type="submit">Submit Question</button>
+            </form>
+
+            <hr class="divider">
+
+            <p style="font-size: 0.9em; font-style: italic;">Note: This form uses a mailto: action. Customize the email address in the form action attribute, or integrate with your preferred email service provider or form handling service. For production use, consider implementing proper form handling to ensure reliable delivery of submissions.</p>
+        </section>
+
+        <footer>
+            <p>&copy; 2026 The Watchman's Cry: Common Sense Reborn</p>
+        </footer>
+    </div>
+</body>
+</html>

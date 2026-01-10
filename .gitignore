@@ -1,0 +1,22 @@
+# Dependencies
+node_modules
+
+# Vercel deployment artifacts
+.vercel
+
+# Build outputs
+dist
+build
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Editor/IDE files (optional - uncomment if needed)
+# .vscode
+# .idea
+# *.swp
+# *.swo

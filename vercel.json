@@ -1,0 +1,15 @@
+// Vercel config - treats project as pure static HTML site, no build needed
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "**/*.html",
+      "use": "@vercel/static"
+    }
+  ],
+  "routes": [
+    { "src": "/", "dest": "/index.html" },
+    { "src": "/prelaunch", "dest": "/prelaunch.html" },
+    { "src": "/(.*)", "dest": "/$1" }
+  ]
+}

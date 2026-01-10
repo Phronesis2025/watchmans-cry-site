@@ -1,0 +1,295 @@
+/* The Watchman's Cry: Common Sense Reborn - Stylesheet */
+
+/* Import Google Fonts - EB Garamond for 18th-century broadsheet aesthetic */
+@import url("https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;700&display=swap");
+
+/* Base styles - Sepia parchment background, black ink text */
+body {
+  font-family: "EB Garamond", serif;
+  background-color: #f4e8d4;
+  color: #000;
+  line-height: 1.5;
+  margin: 0;
+  padding: 20px;
+}
+
+/* Container for content - max-width for readability */
+.container {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+/* Headings - Centered, bold for newspaper masthead feel */
+h1,
+h2 {
+  text-align: center;
+  font-weight: 700;
+}
+
+h1 {
+  font-size: 2.5em;
+  margin-bottom: 0.25em;
+}
+
+h2 {
+  font-size: 1.8em;
+  margin-top: 0.5em;
+  margin-bottom: 1em;
+}
+
+h3 {
+  font-size: 1.4em;
+  font-weight: 700;
+  margin-top: 1.5em;
+  margin-bottom: 0.75em;
+}
+
+/* Author byline styling */
+.author-byline {
+  font-style: italic;
+  text-align: right;
+  margin-bottom: 1em;
+  font-size: 0.95em;
+}
+
+/* Drop cap effect for section openings - 18th-century typography */
+.drop-cap::first-letter {
+  font-size: 3em;
+  float: left;
+  line-height: 0.8;
+  margin-right: 0.1em;
+  margin-top: 0.1em;
+  font-weight: 700;
+}
+
+/* Ornamental dividers - Dotted line for newspaper section breaks */
+hr.divider {
+  border: none;
+  border-top: 2px dotted #000;
+  margin: 2em 0;
+}
+
+/* Woodcut image styling - Simple border to frame illustrations */
+img.woodcut {
+  max-width: 100%;
+  height: auto;
+  border: 1px solid #000;
+  margin: 1em 0;
+  display: block;
+}
+
+/* Right-floated image for text wrapping */
+img.woodcut.float-right {
+  float: right;
+  max-width: 300px;
+  margin: 0 0 1em 1.5em;
+  display: block;
+}
+
+/* Navigation menu - Simple, clean links */
+nav {
+  text-align: center;
+  margin: 2em 0;
+}
+
+nav ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+nav li {
+  display: inline-block;
+  margin: 0 1em;
+}
+
+nav a {
+  color: #000;
+  text-decoration: none;
+  font-weight: 700;
+}
+
+nav a:hover {
+  text-decoration: underline;
+}
+
+/* Form styles - Simple black borders, no fancy effects */
+form {
+  margin: 2em 0;
+  padding: 1.5em;
+  border: 1px solid #000;
+}
+
+form label {
+  display: block;
+  margin-bottom: 0.5em;
+  font-weight: 700;
+}
+
+form input[type="text"],
+form input[type="email"],
+form textarea {
+  width: 100%;
+  padding: 0.5em;
+  margin-bottom: 1em;
+  border: 1px solid #000;
+  background-color: #fff;
+  font-family: "EB Garamond", serif;
+  font-size: 1em;
+  box-sizing: border-box;
+}
+
+form textarea {
+  min-height: 150px;
+  resize: vertical;
+}
+
+form button {
+  padding: 0.75em 2em;
+  background-color: #000;
+  color: #f4e8d4;
+  border: none;
+  font-family: "EB Garamond", serif;
+  font-size: 1em;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+form button:hover {
+  background-color: #333;
+}
+
+/* Article and section spacing */
+article {
+  margin: 2em 0;
+}
+
+section {
+  margin: 2em 0;
+}
+
+/* Paragraph spacing */
+p {
+  margin: 1em 0;
+  text-align: justify;
+}
+
+/* List styling */
+ul,
+ol {
+  margin: 1em 0;
+  padding-left: 2em;
+}
+
+li {
+  margin: 0.5em 0;
+}
+
+/* Link styling */
+a {
+  color: #000;
+  text-decoration: underline;
+}
+
+a:hover {
+  text-decoration: none;
+}
+
+/* Archive list styling */
+.archive-list {
+  list-style: none;
+  padding: 0;
+}
+
+.archive-list li {
+  margin: 1em 0;
+  padding: 0.5em;
+  border-bottom: 1px solid #000;
+}
+
+.archive-list a {
+  font-size: 1.2em;
+  font-weight: 700;
+}
+
+/* Staff section styling */
+.staff-member {
+  margin: 2em 0;
+  padding: 1em;
+  border: 1px solid #000;
+}
+
+.staff-member img {
+  float: left;
+  margin-right: 1em;
+  margin-bottom: 1em;
+  max-width: 150px;
+}
+
+/* Footer styling */
+footer {
+  margin-top: 3em;
+  padding-top: 2em;
+  border-top: 2px dotted #000;
+  text-align: center;
+}
+
+/* Mobile-first responsive design */
+@media (max-width: 600px) {
+  body {
+    padding: 10px;
+    font-size: 16px;
+  }
+
+  h1 {
+    font-size: 2em;
+  }
+
+  h2 {
+    font-size: 1.5em;
+  }
+
+  nav li {
+    display: block;
+    margin: 0.5em 0;
+  }
+
+  .staff-member img {
+    float: none;
+    display: block;
+    margin: 0 auto 1em;
+  }
+
+  /* Remove float on mobile for better readability */
+  img.woodcut.float-right {
+    float: none;
+    max-width: 100%;
+    margin: 1em 0;
+  }
+
+  form {
+    padding: 1em;
+  }
+}
+/* Prelaunch form embed adjustments */
+.form-embed {
+  background: #f9f5e9; /* Slightly lighter parchment for contrast */
+  border: 1px solid #3c2f2f; /* Dark ink border */
+  border-radius: 4px;
+  padding: 8px;
+  margin: 1.5em 0;
+}
+
+.form-embed iframe {
+  display: block;
+  width: 100%;
+}
+
+/* Make sure drop-cap works well here too */
+.teaser .drop-cap::first-letter {
+  font-size: 4em;
+  float: left;
+  margin: 0.05em 0.15em 0 0;
+  line-height: 0.8;
+  color: #3c2f2f;
+}

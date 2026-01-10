@@ -1,0 +1,47 @@
+PROJECT: The Watchman's Cry: Common Sense Reborn
+
+Mission: Weekly digital almanac reviving colonial-era pamphlet boldness to confront modern tyranny, cultural decay, spiritual drift. Unapologetically biblical faith, America First, conservative principles. Goal: Anger wicked, awaken complacent, equip faithful, point to Christ/action. Anonymous operation.
+
+Title: The Watchman's Cry (main) – Common Sense Reborn (subtitle)
+
+Core Guiding Principles (About Page):
+1. Faith in the Living God: God is real, Bible true, Jesus returning. Wisdom begins here.
+2. America First: Nation's interests/borders/people before global schemes.
+3. First-Principles Thinking: Strip issues to roots, reason from fundamentals.
+4. Traditional Values and Free Enterprise: Against woke, uphold conservative principles, defend capitalism.
+5. Unalienable Rights: Speech, life, liberty God-given.
+6. Personal Responsibility and Self-Reliance: Stand on own feet, provide family, answer to God.
+7. Family and Biblical Morality: Strong families bedrock of nation.
+8. Limited Government and Sound Money: Small/restrained/fiscally prudent gov.
+9. Original Constitutionalism and Rule of Law: Honor Constitution as intended.
+10. National Sovereignty Over Globalism: America's destiny by Americans.
+
+Tone: Mix fiery (Paine/Trump), satirical (Walsh/Franklin), prophetic (Kirk/Peterson), practical (Musk/Vance/Rogan). Blunt, shocking when warranted, plain-spoken for working man.
+
+Frequency: Weekly edition, Thursday 8:00 PM CST X teaser thread → full site.
+
+Sections (Fixed Template):
+1. Opening Dispatch (200-300 words)
+2. The Plain Truth (600-800 words, main headline expose)
+3. Prophetic Parallels (500-700 words, biblical ties)
+4. Victory Reports (400-600 words, hope/wins)
+5. The Common Man's Counsel (400-600 words, reader question + advice)
+6. Practical Self-Reliance Corner (300-500 words, tips)
+7. Prayer of the Week & Closing Call (short prayer + actions)
+
+Personas (5, rotate weekly, fictitious bios on Staff page):
+1. The Watchman (Henry/Paine + Tucker/Trump): Fiery blunt editor.
+2. The Old Prophet (Isaiah/Jeremiah + Peterson/Charlie Kirk): Scriptural depth/warnings.
+3. The Sentinel (Adams/Otis + Walsh/Vivek): Satirical provocation.
+4. The Frontier Builder (Franklin/Jefferson + Musk/Vance/Rogan): Practical innovation.
+5. The Working Patriot (practical advice for common/working people).
+
+Visuals: 18th-century woodcut political cartoons – bold black ink, symbolic, satirical. Header + spots per edition.
+
+Website: Simple Cursor-built, broadsheet aesthetic (sepia, old fonts, drop caps). Pages: Home, Archive, About, Staff, Submit Counsel.
+
+Workflow: I signal → Grok scans headlines → generates full edition (text, illus prompts, X thread) → I paste/add images/publish.
+
+Marketing: Anonymous X account, provocative teasers for viral outrage.
+
+Current Date Reference: January 2026 onward.
