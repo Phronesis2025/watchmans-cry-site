@@ -1,15 +1,20 @@
-// Vercel config - treats project as pure static HTML site, no build needed
+// vercel.json – updated for Vercel 2025+ static sites
 {
   "version": 2,
-  "builds": [
+  "public": true,
+  "cleanUrls": true,
+  "trailingSlash": false,
+  "rewrites": [
     {
-      "src": "**/*.html",
-      "use": "@vercel/static"
+      "source": "/",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/prelaunch",
+      "destination": "/prelaunch.html"
     }
   ],
-  "routes": [
-    { "src": "/", "dest": "/index.html" },
-    { "src": "/prelaunch", "dest": "/prelaunch.html" },
-    { "src": "/(.*)", "dest": "/$1" }
-  ]
+  "redirects": [],
+  "headers": [],
+  "regions": ["all"]
 }
