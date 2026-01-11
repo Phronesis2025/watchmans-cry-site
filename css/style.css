@@ -124,6 +124,12 @@ nav a:hover {
   text-decoration: underline;
 }
 
+/* Hide Archive and Staff navigation links temporarily */
+nav a[href*="archive.html"],
+nav a[href*="staff.html"] {
+  display: none;
+}
+
 /* Form styles - Simple black borders, no fancy effects */
 form {
   margin: 2em 0;
