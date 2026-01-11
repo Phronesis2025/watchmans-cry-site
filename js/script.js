@@ -1,21 +1,58 @@
 // The Watchman's Cry: Common Sense Reborn - JavaScript
-// Minimal JavaScript for basic form handling if needed
+// Image modal functionality
 
-// This file is intentionally minimal, as per the project requirements.
-// If you need to add form validation or other basic functionality,
-// you can extend this file. For now, it serves as a placeholder.
+// Create modal overlay element
+const modal = document.createElement('div');
+modal.className = 'image-modal';
+document.body.appendChild(modal);
 
-// Example: Basic form validation (commented out - uncomment if needed)
-/*
-function validateForm(form) {
-    const email = form.querySelector('input[type="email"]');
-    if (email && !email.value) {
-        alert('Please enter an email address.');
-        return false;
-    }
-    return true;
+// Create modal image element
+const modalImg = document.createElement('img');
+modal.appendChild(modalImg);
+
+// Function to open modal with image
+function openImageModal(imgSrc, imgAlt) {
+  modalImg.src = imgSrc;
+  modalImg.alt = imgAlt || 'Enlarged image';
+  modal.classList.add('active');
+  document.body.classList.add('modal-open');
 }
-*/
 
-// Note: Forms currently use mailto: action, which works without JavaScript.
-// For production use, consider implementing proper form handling.
+// Function to close modal
+function closeImageModal() {
+  modal.classList.remove('active');
+  document.body.classList.remove('modal-open');
+}
+
+// Add click event listeners to all article images when page loads
+document.addEventListener('DOMContentLoaded', function() {
+  // Find all images in articles (woodcut class or any image in article/section)
+  const articleImages = document.querySelectorAll('article img, .section img, .edition img');
+  
+  articleImages.forEach(function(img) {
+    // Skip banner images and other non-article images
+    if (img.closest('header') || img.classList.contains('banner')) {
+      return;
+    }
+    
+    img.style.cursor = 'pointer';
+    img.addEventListener('click', function(e) {
+      e.stopPropagation();
+      openImageModal(this.src, this.alt);
+    });
+  });
+  
+  // Close modal when clicking on overlay or image
+  modal.addEventListener('click', function(e) {
+    if (e.target === modal || e.target === modalImg) {
+      closeImageModal();
+    }
+  });
+  
+  // Close modal with Escape key
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && modal.classList.contains('active')) {
+      closeImageModal();
+    }
+  });
+});
