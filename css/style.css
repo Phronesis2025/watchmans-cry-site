@@ -256,34 +256,47 @@ footer {
   color: #666;
 }
 
-/* Bible verse quote styling */
+/* Bible verse quote styling - Poor Richard's Almanack style */
 .bible-quote {
   font-style: italic;
+  font-size: 1.05em;
+  line-height: 1.7;
+  margin: 2em 1.5em;
+  padding: 1.5em 2em;
+  border: 2px double #000;
+  background-color: rgba(244, 232, 212, 0.5);
+  text-align: center;
+  position: relative;
+  font-family: "EB Garamond", serif;
+}
+
+.bible-quote strong {
+  font-weight: 700;
+  font-style: normal;
+  display: block;
+  margin-bottom: 0.75em;
   font-size: 1.1em;
-  line-height: 1.6;
-  margin: 1.5em 2em;
-  padding: 1.5em;
-  border-left: 3px solid #000;
-  background-color: rgba(0, 0, 0, 0.03);
-  text-align: left;
+  letter-spacing: 0.05em;
 }
 
 .bible-quote::before {
-  content: '"';
-  font-size: 2em;
-  line-height: 0;
-  vertical-align: -0.4em;
-  margin-right: 0.1em;
-  opacity: 0.5;
+  content: '❧';
+  font-size: 1.5em;
+  position: absolute;
+  left: 0.5em;
+  top: 0.5em;
+  opacity: 0.6;
+  line-height: 1;
 }
 
 .bible-quote::after {
-  content: '"';
-  font-size: 2em;
-  line-height: 0;
-  vertical-align: -0.4em;
-  margin-left: 0.1em;
-  opacity: 0.5;
+  content: '❧';
+  font-size: 1.5em;
+  position: absolute;
+  right: 0.5em;
+  bottom: 0.5em;
+  opacity: 0.6;
+  line-height: 1;
 }
 
 /* Mobile-first responsive design */
