@@ -37,6 +37,17 @@ h2 {
   margin-bottom: 1em;
 }
 
+/* Tagline styling - subtle text under main title */
+.tagline {
+  font-size: 1.1rem;
+  font-style: italic;
+  opacity: 0.8;
+  margin-top: -0.5rem;
+  margin-bottom: 1em;
+  text-align: center;
+  color: #000;
+}
+
 h3 {
   font-size: 1.4em;
   font-weight: 700;
@@ -232,6 +243,17 @@ footer {
   padding-top: 2em;
   border-top: 2px dotted #000;
   text-align: center;
+}
+
+/* Page footer - mysterious signature at bottom */
+.page-footer {
+  margin-top: 4em;
+  padding-top: 1.5em;
+  padding-bottom: 1.5em;
+  border-top: 1px solid #ccc;
+  text-align: center;
+  font-size: 0.8rem;
+  color: #666;
 }
 
 /* Mobile-first responsive design */
