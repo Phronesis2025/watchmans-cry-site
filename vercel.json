@@ -1,19 +1,14 @@
 {
   "version": 2,
-  "public": true,
-  "cleanUrls": true,
-  "trailingSlash": false,
-  "rewrites": [
+  "builds": [
     {
-      "source": "/",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/prelaunch",
-      "destination": "/prelaunch.html"
+      "src": "**/*.html",
+      "use": "@vercel/static"
     }
   ],
-  "redirects": [],
-  "headers": [],
-  "regions": ["all"]
+  "routes": [
+    { "src": "/", "dest": "/index.html" },
+    { "src": "/prelaunch", "dest": "/prelaunch.html" },
+    { "src": "/(.*)", "dest": "/$1" }
+  ]
 }
