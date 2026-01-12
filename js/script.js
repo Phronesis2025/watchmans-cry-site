@@ -26,12 +26,12 @@ function closeImageModal() {
 
 // Add click event listeners to all article images when page loads
 document.addEventListener('DOMContentLoaded', function() {
-  // Find all images in articles (woodcut class or any image in article/section)
-  const articleImages = document.querySelectorAll('article img, .section img, .edition img');
+  // Find all images in articles, sections, editions, and staff member portraits
+  const articleImages = document.querySelectorAll('article img, .section img, .edition img, .staff-member img, .portrait');
   
   articleImages.forEach(function(img) {
-    // Skip banner images and other non-article images
-    if (img.closest('header') || img.classList.contains('banner')) {
+    // Skip banner images, dividers, and other non-article images
+    if (img.closest('header') || img.classList.contains('banner') || img.classList.contains('divider')) {
       return;
     }
     
