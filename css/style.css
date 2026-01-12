@@ -203,9 +203,8 @@ nav a:hover {
   text-decoration: underline;
 }
 
-/* Hide Archive and Staff for now */
-nav a[href*="archive.html"],
-nav a[href*="staff.html"] {
+/* Hide Archive for now */
+nav a[href*="archive.html"] {
   display: none;
 }
 
