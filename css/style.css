@@ -1,25 +1,31 @@
 /* The Watchman's Cry: Common Sense Reborn - Stylesheet */
+/* Authentic 18th-century American broadsheet / Poor Richard’s Almanack style */
 
-/* Import Google Fonts - EB Garamond for 18th-century broadsheet aesthetic */
+/* Import Google Fonts */
 @import url("https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;700&display=swap");
 
-/* Base styles - Sepia parchment background, black ink text */
+/* =========================
+   BASE PAGE STYLES
+   ========================= */
+
 body {
   font-family: "EB Garamond", serif;
-  background-color: #f4e8d4;
+  background-color: #f4e8d4; /* parchment */
   color: #000;
-  line-height: 1.5;
+  line-height: 1.55;
   margin: 0;
   padding: 20px;
 }
 
-/* Container for content - max-width for readability */
 .container {
   max-width: 800px;
   margin: 0 auto;
 }
 
-/* Headings - Centered, bold for newspaper masthead feel */
+/* =========================
+   HEADINGS
+   ========================= */
+
 h1,
 h2 {
   text-align: center;
@@ -37,17 +43,6 @@ h2 {
   margin-bottom: 1em;
 }
 
-/* Tagline styling - subtle text under main title */
-.tagline {
-  font-size: 1.1rem;
-  font-style: italic;
-  opacity: 0.8;
-  margin-top: -0.5rem;
-  margin-bottom: 1em;
-  text-align: center;
-  color: #000;
-}
-
 h3 {
   font-size: 1.4em;
   font-weight: 700;
@@ -55,7 +50,19 @@ h3 {
   margin-bottom: 0.75em;
 }
 
-/* Author byline styling */
+.tagline {
+  font-size: 1.1rem;
+  font-style: italic;
+  opacity: 0.85;
+  margin-top: -0.5rem;
+  margin-bottom: 1em;
+  text-align: center;
+}
+
+/* =========================
+   TYPOGRAPHY DETAILS
+   ========================= */
+
 .author-byline {
   font-style: italic;
   text-align: right;
@@ -63,7 +70,6 @@ h3 {
   font-size: 0.95em;
 }
 
-/* Drop cap effect for section openings - 18th-century typography */
 .drop-cap::first-letter {
   font-size: 3em;
   float: left;
@@ -73,216 +79,140 @@ h3 {
   font-weight: 700;
 }
 
-/* Ornamental dividers - Image divider for newspaper section breaks */
+/* =========================
+   DIVIDERS & IMAGES
+   ========================= */
+
 img.divider {
   width: 100%;
   max-width: 800px;
-  height: auto;
   display: block;
   margin: 2em auto;
-  border: none;
 }
 
-/* Woodcut image styling - Simple border to frame illustrations */
 img.woodcut {
   max-width: 100%;
-  height: auto;
   border: 1px solid #000;
   margin: 1em 0;
-  display: block;
 }
 
-/* Right-floated image for text wrapping */
 img.woodcut.float-right {
   float: right;
   max-width: 300px;
   margin: 0 0 1em 1.5em;
-  display: block;
 }
 
 /* =========================
-   NAVIGATION (FIXED)
+   NAVIGATION — AUTHENTIC VERSION
    ========================= */
 
-/* Navigation menu container */
+/*
+   This replaces “buttons” with period-accurate
+   engraved text links separated by rules.
+*/
+
 nav {
+  margin: 2.5em 0;
   text-align: center;
-  margin: 2em 0;
 }
 
-/* Make nav links feel like engraved “buttons”, not separators */
 nav ul {
   list-style: none;
   padding: 0;
   margin: 0;
+
   display: flex;
   justify-content: center;
-  gap: 14px;
-  flex-wrap: wrap;
+  align-items: center;
+  gap: 2.2em;
+
+  border-top: 2px solid #000;
+  border-bottom: 2px solid #000;
+  padding: 0.75em 0;
 }
 
 nav li {
-  display: block;
-  margin: 0; /* kill the old 1em margins */
+  margin: 0;
+  padding: 0;
 }
 
-/* Button-like link */
+/* Link appearance — NOT buttons */
 nav a {
-  display: inline-block;
   color: #000;
   text-decoration: none;
   font-weight: 700;
-
-  padding: 10px 18px;
-  border: 2px double #000;
-  background: rgba(244, 232, 212, 0.35);
-
+  font-size: 1.05em;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   position: relative;
-  letter-spacing: 0.04em;
-  text-transform: none;
+  padding: 0 0.2em;
+}
+/* --- Broadsheet drop-cap initials in nav (H / A / S) --- */
 
-  /* subtle “pressed paper” feel */
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.15) inset;
+nav a {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.35em;
 }
 
-/* tiny ornament marks like an almanack flourish */
-nav a::before,
-nav a::after {
-  content: "❧";
+/* The initial itself */
+nav a .nav-initial {
+  font-weight: 700;
+  font-size: 1.65em; /* drop-cap feel */
+  line-height: 0.85;
+  letter-spacing: 0.02em;
+  position: relative;
+  top: 0.06em; /* slight sink like old type */
+}
+
+/* Optional: tiny “ink bite” effect (subtle, not modern) */
+nav a .nav-initial::after {
+  content: "";
   position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 0.95em;
-  opacity: 0.7;
-  line-height: 1;
+  left: 0.05em;
+  top: 0.15em;
+  width: 0.12em;
+  height: 0.12em;
+  background: #000;
+  opacity: 0.15;
 }
 
-nav a::before {
-  left: 8px;
+/* Keep the word slightly smaller so the initial leads */
+nav a .nav-word {
+  font-size: 1em;
+  letter-spacing: 0.1em;
 }
 
-nav a::after {
-  right: 8px;
+/* On hover, underline only the word (more print-like) */
+nav a:hover {
+  text-decoration: none;
+}
+nav a:hover .nav-word {
+  text-decoration: underline;
+}
+
+/* Small engraved ornament on hover */
+nav a:hover::after {
+  content: " ❧";
+  font-size: 0.85em;
+  position: relative;
+  top: -0.05em;
 }
 
 nav a:hover {
-  background: rgba(244, 232, 212, 0.6);
-  text-decoration: none;
+  text-decoration: underline;
 }
 
-nav a:active {
-  transform: translateY(1px);
-}
-
-/* Hide Archive and Staff navigation links temporarily */
+/* Hide Archive and Staff for now */
 nav a[href*="archive.html"],
 nav a[href*="staff.html"] {
   display: none;
 }
 
 /* =========================
-   IMAGES / MODAL
+   ARTICLES & TEXT
    ========================= */
 
-/* Image modal styling - make article images clickable */
-article img,
-.section img,
-.edition img {
-  cursor: pointer;
-  transition: opacity 0.2s;
-}
-
-article img:hover,
-.section img:hover,
-.edition img:hover {
-  opacity: 0.9;
-}
-
-/* Exclude banner and header images from modal */
-header img,
-.banner {
-  cursor: default;
-}
-
-/* Modal overlay */
-.image-modal {
-  display: none;
-  position: fixed;
-  z-index: 9999;
-  left: 0;
-  top: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.9);
-  cursor: pointer;
-}
-
-.image-modal.active {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.image-modal img {
-  max-width: 90%;
-  max-height: 90%;
-  object-fit: contain;
-  border: 2px solid #f4e8d4;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
-}
-
-/* Prevent body scroll when modal is open */
-body.modal-open {
-  overflow: hidden;
-}
-
-/* Form styles - Simple black borders, no fancy effects */
-form {
-  margin: 2em 0;
-  padding: 1.5em;
-  border: 1px solid #000;
-}
-
-form label {
-  display: block;
-  margin-bottom: 0.5em;
-  font-weight: 700;
-}
-
-form input[type="text"],
-form input[type="email"],
-form textarea {
-  width: 100%;
-  padding: 0.5em;
-  margin-bottom: 1em;
-  border: 1px solid #000;
-  background-color: #fff;
-  font-family: "EB Garamond", serif;
-  font-size: 1em;
-  box-sizing: border-box;
-}
-
-form textarea {
-  min-height: 150px;
-  resize: vertical;
-}
-
-form button {
-  padding: 0.75em 2em;
-  background-color: #000;
-  color: #f4e8d4;
-  border: none;
-  font-family: "EB Garamond", serif;
-  font-size: 1em;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-form button:hover {
-  background-color: #333;
-}
-
-/* Article and section spacing */
 article {
   margin: 2em 0;
 }
@@ -291,24 +221,15 @@ section {
   margin: 2em 0;
 }
 
-/* Paragraph spacing */
 p {
   margin: 1em 0;
   text-align: justify;
 }
 
-/* List styling */
-ul,
-ol {
-  margin: 1em 0;
-  padding-left: 2em;
-}
+/* =========================
+   LINKS
+   ========================= */
 
-li {
-  margin: 0.5em 0;
-}
-
-/* Link styling */
 a {
   color: #000;
   text-decoration: underline;
@@ -318,56 +239,10 @@ a:hover {
   text-decoration: none;
 }
 
-/* Archive list styling */
-.archive-list {
-  list-style: none;
-  padding: 0;
-}
+/* =========================
+   BIBLE QUOTE BLOCK
+   ========================= */
 
-.archive-list li {
-  margin: 1em 0;
-  padding: 0.5em;
-  border-bottom: 1px solid #000;
-}
-
-.archive-list a {
-  font-size: 1.2em;
-  font-weight: 700;
-}
-
-/* Staff section styling */
-.staff-member {
-  margin: 2em 0;
-  padding: 1em;
-  border: 1px solid #000;
-}
-
-.staff-member img {
-  float: left;
-  margin-right: 1em;
-  margin-bottom: 1em;
-  max-width: 150px;
-}
-
-/* Footer styling */
-footer {
-  margin-top: 3em;
-  padding-top: 2em;
-  text-align: center;
-}
-
-/* Page footer - mysterious signature at bottom */
-.page-footer {
-  margin-top: 4em;
-  padding-top: 1.5em;
-  padding-bottom: 1.5em;
-  border-top: 1px solid #ccc;
-  text-align: center;
-  font-size: 0.8rem;
-  color: #666;
-}
-
-/* Bible verse quote styling - Poor Richard's Almanack style */
 .bible-quote {
   font-style: italic;
   font-size: 1.05em;
@@ -378,101 +253,64 @@ footer {
   background-color: rgba(244, 232, 212, 0.5);
   text-align: center;
   position: relative;
-  font-family: "EB Garamond", serif;
 }
 
 .bible-quote strong {
   font-weight: 700;
-  font-style: normal;
   display: block;
   margin-bottom: 0.75em;
-  font-size: 1.1em;
   letter-spacing: 0.05em;
 }
 
-.bible-quote::before {
-  content: "❧";
-  font-size: 1.5em;
-  position: absolute;
-  left: 0.5em;
-  top: 0.5em;
-  opacity: 0.6;
-  line-height: 1;
-}
-
+.bible-quote::before,
 .bible-quote::after {
   content: "❧";
   font-size: 1.5em;
   position: absolute;
-  right: 0.5em;
-  bottom: 0.5em;
   opacity: 0.6;
-  line-height: 1;
 }
 
-/* Mobile-first responsive design */
+.bible-quote::before {
+  left: 0.5em;
+  top: 0.5em;
+}
+
+.bible-quote::after {
+  right: 0.5em;
+  bottom: 0.5em;
+}
+
+/* =========================
+   FOOTER
+   ========================= */
+
+.page-footer {
+  margin-top: 4em;
+  padding-top: 1.5em;
+  border-top: 1px solid #000;
+  text-align: center;
+  font-size: 0.85rem;
+  color: #000;
+}
+
+/* =========================
+   MOBILE
+   ========================= */
+
 @media (max-width: 600px) {
   body {
     padding: 10px;
     font-size: 16px;
   }
 
-  h1 {
-    font-size: 2em;
-  }
-
-  h2 {
-    font-size: 1.5em;
-  }
-
   nav ul {
     flex-direction: column;
-    align-items: center;
-    gap: 10px;
+    gap: 0.75em;
   }
 
-  .staff-member img {
-    float: none;
-    display: block;
-    margin: 0 auto 1em;
-  }
-
-  /* Remove float on mobile for better readability */
   img.woodcut.float-right {
     float: none;
     max-width: 100%;
     margin: 1em 0;
   }
-
-  form {
-    padding: 1em;
-  }
-}
-
-/* Prelaunch form embed adjustments */
-.form-embed {
-  background: #f9f5e9; /* Slightly lighter parchment for contrast */
-  border: 1px solid #3c2f2f; /* Dark ink border */
-  border-radius: 4px;
-  padding: 8px;
-  margin: 1.5em 0;
-}
-
-.form-embed iframe {
-  display: block;
-  width: 100%;
-}
-
-/* Make sure drop-cap works well here too */
-.teaser .drop-cap::first-letter {
-  font-size: 4em;
-  float: left;
-  margin: 0.05em 0.15em 0 0;
-  line-height: 0.8;
-  color: #3c2f2f;
-}
-
-/* KEEP the class (in case your HTML uses it), but STOP drawing full-width rules */
-.almanac-link {
-  display: inline-block;
 }
