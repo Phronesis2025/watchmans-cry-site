@@ -418,3 +418,13 @@ footer {
   line-height: 0.8;
   color: #3c2f2f;
 }
+
+/* Almanac link styling - decorative lines above and below */
+.almanac-link::before,
+.almanac-link::after {
+  content: "";
+  display: block;
+  height: 1px;
+  background: #111;
+  margin: 6px 0;
+}
