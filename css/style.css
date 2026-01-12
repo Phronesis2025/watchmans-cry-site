@@ -100,31 +100,78 @@ img.woodcut.float-right {
   display: block;
 }
 
-/* Navigation menu - Simple, clean links */
+/* =========================
+   NAVIGATION (FIXED)
+   ========================= */
+
+/* Navigation menu container */
 nav {
   text-align: center;
   margin: 2em 0;
 }
 
+/* Make nav links feel like engraved “buttons”, not separators */
 nav ul {
   list-style: none;
   padding: 0;
   margin: 0;
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  flex-wrap: wrap;
 }
 
 nav li {
-  display: inline-block;
-  margin: 0 1em;
+  display: block;
+  margin: 0; /* kill the old 1em margins */
 }
 
+/* Button-like link */
 nav a {
+  display: inline-block;
   color: #000;
   text-decoration: none;
   font-weight: 700;
+
+  padding: 10px 18px;
+  border: 2px double #000;
+  background: rgba(244, 232, 212, 0.35);
+
+  position: relative;
+  letter-spacing: 0.04em;
+  text-transform: none;
+
+  /* subtle “pressed paper” feel */
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.15) inset;
+}
+
+/* tiny ornament marks like an almanack flourish */
+nav a::before,
+nav a::after {
+  content: "❧";
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.95em;
+  opacity: 0.7;
+  line-height: 1;
+}
+
+nav a::before {
+  left: 8px;
+}
+
+nav a::after {
+  right: 8px;
 }
 
 nav a:hover {
-  text-decoration: underline;
+  background: rgba(244, 232, 212, 0.6);
+  text-decoration: none;
+}
+
+nav a:active {
+  transform: translateY(1px);
 }
 
 /* Hide Archive and Staff navigation links temporarily */
@@ -132,6 +179,10 @@ nav a[href*="archive.html"],
 nav a[href*="staff.html"] {
   display: none;
 }
+
+/* =========================
+   IMAGES / MODAL
+   ========================= */
 
 /* Image modal styling - make article images clickable */
 article img,
@@ -340,7 +391,7 @@ footer {
 }
 
 .bible-quote::before {
-  content: '❧';
+  content: "❧";
   font-size: 1.5em;
   position: absolute;
   left: 0.5em;
@@ -350,7 +401,7 @@ footer {
 }
 
 .bible-quote::after {
-  content: '❧';
+  content: "❧";
   font-size: 1.5em;
   position: absolute;
   right: 0.5em;
@@ -374,9 +425,10 @@ footer {
     font-size: 1.5em;
   }
 
-  nav li {
-    display: block;
-    margin: 0.5em 0;
+  nav ul {
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
   }
 
   .staff-member img {
@@ -396,6 +448,7 @@ footer {
     padding: 1em;
   }
 }
+
 /* Prelaunch form embed adjustments */
 .form-embed {
   background: #f9f5e9; /* Slightly lighter parchment for contrast */
@@ -419,12 +472,7 @@ footer {
   color: #3c2f2f;
 }
 
-/* Almanac link styling - decorative lines above and below */
-.almanac-link::before,
-.almanac-link::after {
-  content: "";
-  display: block;
-  height: 1px;
-  background: #111;
-  margin: 6px 0;
+/* KEEP the class (in case your HTML uses it), but STOP drawing full-width rules */
+.almanac-link {
+  display: inline-block;
 }

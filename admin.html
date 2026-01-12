@@ -17,8 +17,21 @@
 
       <div id="login" style="text-align: center; margin: 4em 0">
         <h3>Admin Access</h3>
-        <input type="password" id="admin-pass" placeholder="Enter passphrase" />
-        <button onclick="checkAdmin()">Enter</button>
+        <div id="login-form" style="max-width: 400px; margin: 0 auto;">
+          <input type="email" id="admin-email" placeholder="Email" style="width: 100%; padding: 0.5em; margin-bottom: 1em; border: 1px solid #000; font-family: 'EB Garamond', serif;" />
+          <input type="password" id="admin-password" placeholder="Password" style="width: 100%; padding: 0.5em; margin-bottom: 1em; border: 1px solid #000; font-family: 'EB Garamond', serif;" />
+          <button onclick="signIn()" style="padding: 0.75em 2em; background-color: #000; color: #f4e8d4; border: none; font-family: 'EB Garamond', serif; font-size: 1em; font-weight: 700; cursor: pointer; width: 100%;">Sign In</button>
+          <p id="login-error" style="color: darkred; margin-top: 1em; display: none;"></p>
+        </div>
+        <div id="signup-form" style="max-width: 400px; margin: 2em auto 0; display: none;">
+          <h4>Create Admin Account</h4>
+          <input type="email" id="signup-email" placeholder="Email" style="width: 100%; padding: 0.5em; margin-bottom: 1em; border: 1px solid #000; font-family: 'EB Garamond', serif;" />
+          <input type="password" id="signup-password" placeholder="Password (min 6 characters)" style="width: 100%; padding: 0.5em; margin-bottom: 1em; border: 1px solid #000; font-family: 'EB Garamond', serif;" />
+          <button onclick="signUp()" style="padding: 0.75em 2em; background-color: #000; color: #f4e8d4; border: none; font-family: 'EB Garamond', serif; font-size: 1em; font-weight: 700; cursor: pointer; width: 100%;">Create Account</button>
+          <button onclick="toggleSignup()" style="padding: 0.5em 1em; background: transparent; border: 1px solid #000; color: #000; font-family: 'EB Garamond', serif; margin-top: 1em; cursor: pointer; width: 100%;">Back to Sign In</button>
+          <p id="signup-error" style="color: darkred; margin-top: 1em; display: none;"></p>
+        </div>
+        <button onclick="toggleSignup()" id="show-signup-btn" style="padding: 0.5em 1em; background: transparent; border: 1px solid #000; color: #000; font-family: 'EB Garamond', serif; margin-top: 1em; cursor: pointer;">Need to create an account?</button>
       </div>
 
       <div id="admin-content" style="display: none">
@@ -36,17 +49,104 @@
       </div>
 
       <script>
-        const REAL_PASSWORD = "jasonboyer"; // CHANGE THIS!
-
-        function checkAdmin() {
-          const pass = document.getElementById("admin-pass").value;
-          if (pass === REAL_PASSWORD) {
+        // Check if user is already signed in on page load
+        window.addEventListener("DOMContentLoaded", async () => {
+          const { data: { session } } = await supabaseClient.auth.getSession();
+          if (session) {
             document.getElementById("login").style.display = "none";
             document.getElementById("admin-content").style.display = "block";
             loadSubmissions();
-          } else {
-            alert("Access denied.");
           }
+        });
+
+        function toggleSignup() {
+          const loginForm = document.getElementById("login-form");
+          const signupForm = document.getElementById("signup-form");
+          const showSignupBtn = document.getElementById("show-signup-btn");
+          
+          if (signupForm.style.display === "none") {
+            loginForm.style.display = "none";
+            signupForm.style.display = "block";
+            showSignupBtn.style.display = "none";
+          } else {
+            loginForm.style.display = "block";
+            signupForm.style.display = "none";
+            showSignupBtn.style.display = "block";
+          }
+        }
+
+        async function signIn() {
+          const email = document.getElementById("admin-email").value;
+          const password = document.getElementById("admin-password").value;
+          const errorEl = document.getElementById("login-error");
+
+          if (!email || !password) {
+            errorEl.textContent = "Please enter both email and password.";
+            errorEl.style.display = "block";
+            return;
+          }
+
+          errorEl.style.display = "none";
+
+          const { data, error } = await supabaseClient.auth.signInWithPassword({
+            email: email,
+            password: password,
+          });
+
+          if (error) {
+            errorEl.textContent = "Error: " + error.message;
+            errorEl.style.display = "block";
+            return;
+          }
+
+          // Success - hide login, show admin content
+          document.getElementById("login").style.display = "none";
+          document.getElementById("admin-content").style.display = "block";
+          loadSubmissions();
+        }
+
+        async function signUp() {
+          const email = document.getElementById("signup-email").value;
+          const password = document.getElementById("signup-password").value;
+          const errorEl = document.getElementById("signup-error");
+
+          if (!email || !password) {
+            errorEl.textContent = "Please enter both email and password.";
+            errorEl.style.display = "block";
+            return;
+          }
+
+          if (password.length < 6) {
+            errorEl.textContent = "Password must be at least 6 characters.";
+            errorEl.style.display = "block";
+            return;
+          }
+
+          errorEl.style.display = "none";
+
+          const { data, error } = await supabaseClient.auth.signUp({
+            email: email,
+            password: password,
+          });
+
+          if (error) {
+            errorEl.textContent = "Error: " + error.message;
+            errorEl.style.display = "block";
+            return;
+          }
+
+          // Success - show message
+          errorEl.style.color = "darkgreen";
+          errorEl.textContent = "Account created! Please check your email to confirm, then sign in.";
+          errorEl.style.display = "block";
+          
+          // Switch back to login form after 3 seconds
+          setTimeout(() => {
+            toggleSignup();
+            document.getElementById("admin-email").value = email;
+            errorEl.style.color = "darkred";
+            errorEl.style.display = "none";
+          }, 3000);
         }
 
         async function loadSubmissions() {
