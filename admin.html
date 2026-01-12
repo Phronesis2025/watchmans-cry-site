@@ -191,25 +191,31 @@
             } else {
               console.log(`Loaded ${counsel.length} counsel questions`);
               let html = `<p><strong>Total: ${counsel.length} questions</strong></p>`;
-              counsel.forEach((entry, index) => {
+              html += `<table style="width: 100%; border-collapse: collapse; margin-top: 1em; border: 1px solid #000;">`;
+              html += `<thead>`;
+              html += `<tr style="background-color: rgba(244, 232, 212, 0.5); border-bottom: 2px solid #000;">`;
+              html += `<th style="padding: 0.75em; text-align: left; border: 1px solid #000; font-weight: 700;">Date</th>`;
+              html += `<th style="padding: 0.75em; text-align: left; border: 1px solid #000; font-weight: 700;">Name</th>`;
+              html += `<th style="padding: 0.75em; text-align: left; border: 1px solid #000; font-weight: 700;">Profession</th>`;
+              html += `<th style="padding: 0.75em; text-align: left; border: 1px solid #000; font-weight: 700;">State</th>`;
+              html += `<th style="padding: 0.75em; text-align: left; border: 1px solid #000; font-weight: 700;">Question</th>`;
+              html += `</tr>`;
+              html += `</thead>`;
+              html += `<tbody>`;
+              counsel.forEach((entry) => {
                 const date = entry.created_at
                   ? new Date(entry.created_at).toLocaleDateString()
                   : "Date unknown";
-                html += `<div style="border: 1px solid #000; padding: 1em; margin: 1em 0;">`;
-                html += `<p><strong>Question ${
-                  index + 1
-                }</strong> - ${date}</p>`;
-                if (entry.name)
-                  html += `<p><strong>Name:</strong> ${entry.name}</p>`;
-                if (entry.profession)
-                  html += `<p><strong>Profession:</strong> ${entry.profession}</p>`;
-                if (entry.state)
-                  html += `<p><strong>State:</strong> ${entry.state}</p>`;
-                html += `<p><strong>Question:</strong> ${
-                  entry.question || "No question text"
-                }</p>`;
-                html += `</div>`;
+                html += `<tr style="border-bottom: 1px solid #000;">`;
+                html += `<td style="padding: 0.75em; border: 1px solid #000;">${date}</td>`;
+                html += `<td style="padding: 0.75em; border: 1px solid #000;">${entry.name || "-"}</td>`;
+                html += `<td style="padding: 0.75em; border: 1px solid #000;">${entry.profession || "-"}</td>`;
+                html += `<td style="padding: 0.75em; border: 1px solid #000;">${entry.state || "-"}</td>`;
+                html += `<td style="padding: 0.75em; border: 1px solid #000;">${entry.question || "No question text"}</td>`;
+                html += `</tr>`;
               });
+              html += `</tbody>`;
+              html += `</table>`;
               counselEl.innerHTML = html;
             }
           } catch (err) {
