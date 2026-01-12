@@ -23,15 +23,10 @@
           <button onclick="signIn()" style="padding: 0.75em 2em; background-color: #000; color: #f4e8d4; border: none; font-family: 'EB Garamond', serif; font-size: 1em; font-weight: 700; cursor: pointer; width: 100%;">Sign In</button>
           <p id="login-error" style="color: darkred; margin-top: 1em; display: none;"></p>
         </div>
-        <div id="signup-form" style="max-width: 400px; margin: 2em auto 0; display: none;">
-          <h4>Create Admin Account</h4>
-          <input type="email" id="signup-email" placeholder="Email" style="width: 100%; padding: 0.5em; margin-bottom: 1em; border: 1px solid #000; font-family: 'EB Garamond', serif;" />
-          <input type="password" id="signup-password" placeholder="Password (min 6 characters)" style="width: 100%; padding: 0.5em; margin-bottom: 1em; border: 1px solid #000; font-family: 'EB Garamond', serif;" />
-          <button onclick="signUp()" style="padding: 0.75em 2em; background-color: #000; color: #f4e8d4; border: none; font-family: 'EB Garamond', serif; font-size: 1em; font-weight: 700; cursor: pointer; width: 100%;">Create Account</button>
-          <button onclick="toggleSignup()" style="padding: 0.5em 1em; background: transparent; border: 1px solid #000; color: #000; font-family: 'EB Garamond', serif; margin-top: 1em; cursor: pointer; width: 100%;">Back to Sign In</button>
-          <p id="signup-error" style="color: darkred; margin-top: 1em; display: none;"></p>
-        </div>
-        <button onclick="toggleSignup()" id="show-signup-btn" style="padding: 0.5em 1em; background: transparent; border: 1px solid #000; color: #000; font-family: 'EB Garamond', serif; margin-top: 1em; cursor: pointer;">Need to create an account?</button>
+        <!-- Signup disabled for security - accounts must be created through Supabase dashboard -->
+        <p id="signup-info" style="font-size: 0.9em; color: #666; margin-top: 1em; display: none;">
+          Admin accounts must be created through the Supabase dashboard for security.
+        </p>
       </div>
 
       <div id="admin-content" style="display: none">
@@ -49,6 +44,14 @@
       </div>
 
       <script>
+        // Security: HTML escaping function to prevent XSS attacks
+        function escapeHtml(text) {
+          if (!text) return "";
+          const div = document.createElement("div");
+          div.textContent = text;
+          return div.innerHTML;
+        }
+
         // Check if user is already signed in on page load
         window.addEventListener("DOMContentLoaded", async () => {
           const { data: { session } } = await supabaseClient.auth.getSession();
@@ -59,21 +62,7 @@
           }
         });
 
-        function toggleSignup() {
-          const loginForm = document.getElementById("login-form");
-          const signupForm = document.getElementById("signup-form");
-          const showSignupBtn = document.getElementById("show-signup-btn");
-          
-          if (signupForm.style.display === "none") {
-            loginForm.style.display = "none";
-            signupForm.style.display = "block";
-            showSignupBtn.style.display = "none";
-          } else {
-            loginForm.style.display = "block";
-            signupForm.style.display = "none";
-            showSignupBtn.style.display = "block";
-          }
-        }
+        // Signup function removed for security - accounts must be created via Supabase dashboard
 
         async function signIn() {
           const email = document.getElementById("admin-email").value;
@@ -94,7 +83,8 @@
           });
 
           if (error) {
-            errorEl.textContent = "Error: " + error.message;
+            // Security: Don't expose detailed error messages that could help attackers
+            errorEl.textContent = "Invalid email or password. Please try again.";
             errorEl.style.display = "block";
             return;
           }
@@ -105,49 +95,7 @@
           loadSubmissions();
         }
 
-        async function signUp() {
-          const email = document.getElementById("signup-email").value;
-          const password = document.getElementById("signup-password").value;
-          const errorEl = document.getElementById("signup-error");
-
-          if (!email || !password) {
-            errorEl.textContent = "Please enter both email and password.";
-            errorEl.style.display = "block";
-            return;
-          }
-
-          if (password.length < 6) {
-            errorEl.textContent = "Password must be at least 6 characters.";
-            errorEl.style.display = "block";
-            return;
-          }
-
-          errorEl.style.display = "none";
-
-          const { data, error } = await supabaseClient.auth.signUp({
-            email: email,
-            password: password,
-          });
-
-          if (error) {
-            errorEl.textContent = "Error: " + error.message;
-            errorEl.style.display = "block";
-            return;
-          }
-
-          // Success - show message
-          errorEl.style.color = "darkgreen";
-          errorEl.textContent = "Account created! Please check your email to confirm, then sign in.";
-          errorEl.style.display = "block";
-          
-          // Switch back to login form after 3 seconds
-          setTimeout(() => {
-            toggleSignup();
-            document.getElementById("admin-email").value = email;
-            errorEl.style.color = "darkred";
-            errorEl.style.display = "none";
-          }, 3000);
-        }
+        // Signup function removed for security - prevent unauthorized account creation
 
         async function loadSubmissions() {
           // Load counsel questions data
@@ -171,7 +119,7 @@
             if (counselError) {
               console.error("Supabase error:", counselError);
               counselEl.innerHTML = `
-                <p style="color: darkred;"><strong>Error:</strong> ${counselError.message}</p>
+                <p style="color: darkred;"><strong>Error:</strong> ${escapeHtml(counselError.message)}</p>
                 <p style="font-size: 0.9em; color: #666; margin-top: 0.5em;">
                   <strong>Note:</strong> This is likely a Row Level Security (RLS) policy issue. 
                   To fix this, you need to:
@@ -207,11 +155,11 @@
                   ? new Date(entry.created_at).toLocaleDateString()
                   : "Date unknown";
                 html += `<tr style="border-bottom: 1px solid #000;">`;
-                html += `<td style="padding: 0.75em; border: 1px solid #000;">${date}</td>`;
-                html += `<td style="padding: 0.75em; border: 1px solid #000;">${entry.name || "-"}</td>`;
-                html += `<td style="padding: 0.75em; border: 1px solid #000;">${entry.profession || "-"}</td>`;
-                html += `<td style="padding: 0.75em; border: 1px solid #000;">${entry.state || "-"}</td>`;
-                html += `<td style="padding: 0.75em; border: 1px solid #000;">${entry.question || "No question text"}</td>`;
+                html += `<td style="padding: 0.75em; border: 1px solid #000;">${escapeHtml(date)}</td>`;
+                html += `<td style="padding: 0.75em; border: 1px solid #000;">${escapeHtml(entry.name || "-")}</td>`;
+                html += `<td style="padding: 0.75em; border: 1px solid #000;">${escapeHtml(entry.profession || "-")}</td>`;
+                html += `<td style="padding: 0.75em; border: 1px solid #000;">${escapeHtml(entry.state || "-")}</td>`;
+                html += `<td style="padding: 0.75em; border: 1px solid #000;">${escapeHtml(entry.question || "No question text")}</td>`;
                 html += `</tr>`;
               });
               html += `</tbody>`;
@@ -221,7 +169,7 @@
           } catch (err) {
             console.error("Exception loading counsel questions:", err);
             counselEl.innerHTML = `
-              <p style="color: darkred;"><strong>Error loading counsel questions:</strong> ${err.message}</p>
+              <p style="color: darkred;"><strong>Error loading counsel questions:</strong> ${escapeHtml(err.message)}</p>
               <p style="font-size: 0.9em; color: #666; margin-top: 0.5em;">
                 Check browser console (F12) for more details.
               </p>
@@ -264,17 +212,17 @@
         <ul>
           <li>
             <a href="index.html">
-              <span class="nav-initial">H</span><span class="nav-word">Home</span>
+              <span class="nav-initial">H</span><span class="nav-word">ome</span>
             </a>
           </li>
           <li>
             <a href="about.html">
-              <span class="nav-initial">A</span><span class="nav-word">About</span>
+              <span class="nav-initial">A</span><span class="nav-word">bout</span>
             </a>
           </li>
           <li>
             <a href="submit.html">
-              <span class="nav-initial">S</span><span class="nav-word">Submit</span>
+              <span class="nav-initial">S</span><span class="nav-word">ubmit</span>
             </a>
           </li>
         </ul>
