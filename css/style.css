@@ -297,6 +297,38 @@ a:hover {
    MOBILE
    ========================= */
 
+/* =========================
+   STAFF MEMBER / VOICES PAGE
+   ========================= */
+
+.staff-member {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.5em;
+  margin: 2em 0;
+}
+
+.staff-member .portrait {
+  width: 150px;
+  height: auto;
+  flex-shrink: 0;
+  margin: 0;
+}
+
+.staff-content {
+  flex: 1;
+}
+
+.staff-member h3 {
+  margin-top: 0;
+  margin-bottom: 0.5em;
+}
+
+.staff-member .motto {
+  margin: 0;
+}
+
+/* Stack on mobile */
 @media (max-width: 600px) {
   body {
     padding: 10px;
@@ -312,5 +344,18 @@ a:hover {
     float: none;
     max-width: 100%;
     margin: 1em 0;
+  }
+
+  .staff-member {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .staff-member .portrait {
+    width: 120px;
+  }
+
+  .staff-member .motto {
+    text-align: center;
   }
 }
