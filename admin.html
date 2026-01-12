@@ -184,20 +184,26 @@
           const metricsEl = document.getElementById("vercel-metrics");
           metricsEl.innerHTML = "<p>Loading analytics...</p>";
 
-          // Check if analytics script is loaded
-          const analyticsActive = typeof window.va !== 'undefined';
+          // Wait a moment for scripts to load, then check analytics status
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+          // Check if analytics script is loaded - check both window.va and window.vaq
+          const vaExists = typeof window.va !== 'undefined';
+          const vaqExists = typeof window.vaq !== 'undefined';
+          const analyticsActive = vaExists || vaqExists;
+          
+          // Also check if we're on Vercel (the script should load automatically)
+          const isVercel = window.location.hostname.includes('vercel.app') || 
+                          window.location.hostname.includes('vercel.sh');
           
           try {
-            // Try to fetch analytics from Vercel API
-            // Note: This requires Vercel API token and project ID
-            // For now, we'll show that tracking is active and provide dashboard link
             let html = `
               <p><strong>Vercel Analytics Status</strong></p>
               <div style="margin-top: 1em; padding: 1em; background-color: rgba(244, 232, 212, 0.3); border: 1px solid #000;">
                 <p style="margin-bottom: 0.5em;">
                   <strong>Tracking Status:</strong> 
                   <span style="color: ${analyticsActive ? 'darkgreen' : '#666'};">
-                    ${analyticsActive ? '✓ Active' : 'Not detected (may need deployment)'}
+                    ${analyticsActive ? '✓ Active' : 'Not detected'}
                   </span>
                 </p>
                 ${analyticsActive ? `
@@ -206,8 +212,18 @@
                   </p>
                 ` : `
                   <p style="font-size: 0.9em; color: #666; margin-top: 0.5em;">
-                    Analytics script will be active once deployed to Vercel. The tracking script has been added to all pages.
+                    <strong>Analytics script not detected.</strong> This could mean:
                   </p>
+                  <ul style="font-size: 0.9em; color: #666; margin-left: 1.5em; margin-top: 0.5em;">
+                    <li>Vercel Analytics needs to be enabled in your project settings</li>
+                    <li>The script may not have loaded yet (try refreshing)</li>
+                    <li>You may need to enable Web Analytics in Vercel Dashboard → Project Settings → Analytics</li>
+                  </ul>
+                  ${isVercel ? `
+                    <p style="font-size: 0.9em; color: darkred; margin-top: 0.5em; font-weight: 700;">
+                      ⚠ You're on Vercel but analytics isn't active. Please enable Web Analytics in your project settings.
+                    </p>
+                  ` : ''}
                 `}
               </div>
               <p style="margin-top: 1.5em;">
@@ -219,6 +235,16 @@
                 </a>
               </p>
               <p style="font-size: 0.9em; color: #666; margin-top: 1em;">
+                <strong>To enable Web Analytics:</strong>
+              </p>
+              <ol style="font-size: 0.9em; color: #666; margin-left: 1.5em; margin-top: 0.5em;">
+                <li>Go to your Vercel Dashboard</li>
+                <li>Select your project</li>
+                <li>Go to Settings → Analytics</li>
+                <li>Enable "Web Analytics"</li>
+                <li>Wait a few minutes for it to activate</li>
+              </ol>
+              <p style="font-size: 0.9em; color: #666; margin-top: 1em;">
                 In your Vercel Dashboard, you can view:
               </p>
               <ul style="font-size: 0.9em; color: #666; margin-left: 1.5em; margin-top: 0.5em;">
@@ -229,9 +255,8 @@
                 <li>Performance metrics</li>
               </ul>
               <p style="font-size: 0.85em; color: #666; margin-top: 1em; font-style: italic; padding-top: 1em; border-top: 1px solid #ccc;">
-                <strong>Note:</strong> Analytics data appears in your project's Analytics tab after deployment. 
-                Real-time metrics may take a few minutes to appear. To display metrics directly on this page, 
-                you would need to configure Vercel API access (requires access token and project ID).
+                <strong>Note:</strong> Analytics data appears in your project's Analytics tab after enabling Web Analytics. 
+                Real-time metrics may take a few minutes to appear after enabling.
               </p>
             `;
             
