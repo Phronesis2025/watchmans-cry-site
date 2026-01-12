@@ -1,68 +1,166 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Submit - The Watchman's Cry</title>
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/style.css" />
     <script src="js/script.js" defer></script>
-</head>
-<body>
+    <!-- Supabase JS CDN - latest v2 as of Jan 2026 -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <!-- Your client + form handler -->
+    <script src="js/supabase-client.js"></script>
+    <script src="js/forms.js"></script>
+  </head>
+  <body>
     <div class="container">
-        <!-- Masthead -->
-        <header>
-            <img src="images/Banner 2.png" alt="The Watchman's Cry Banner" style="width: 100%; max-width: 800px; height: auto; display: block; margin: 0 auto 1em;" />
-            <h1>The Watchman's Cry</h1>
-            <h2>Common Sense Reborn</h2>
-            <p class="tagline">Poor Richard's Almanac Reborn – 2026 Edition</p>
-            <hr class="divider">
-        </header>
+      <!-- Masthead -->
+      <header>
+        <img
+          src="images/Banner 2.png"
+          alt="The Watchman's Cry Banner"
+          style="
+            width: 100%;
+            max-width: 800px;
+            height: auto;
+            display: block;
+            margin: 0 auto 1em;
+          "
+        />
+        <h1>The Watchman's Cry</h1>
+        <h2>Common Sense Reborn</h2>
+        <p class="tagline">Poor Richard's Almanac Reborn – 2026 Edition</p>
+        <hr class="divider" />
+      </header>
 
-        <!-- Navigation menu -->
-        <nav>
-            <ul>
-                <li><a href="index.html">Home</a></li>
-                <li><a href="archive.html">Archive</a></li>
-                <li><a href="about.html">About</a></li>
-                <li><a href="staff.html">Staff</a></li>
-                <li><a href="submit.html">Submit</a></li>
-            </ul>
-        </nav>
+      <!-- Navigation menu -->
+      <nav>
+        <ul>
+          <li><a href="index.html">Home</a></li>
+          <li><a href="archive.html">Archive</a></li>
+          <li><a href="about.html">About</a></li>
+          <li><a href="staff.html">Staff</a></li>
+          <li><a href="submit.html">Submit</a></li>
+        </ul>
+      </nav>
 
-        <!-- Submit Content -->
-        <section>
-            <h2>Common Man's Counsel: Submit Your Question</h2>
-            <p class="drop-cap">We invite all readers to submit questions, concerns, or topics for discussion. The Common Man's Counsel section addresses matters that affect the daily lives of ordinary people, applying the principles of common sense to real-world situations.</p>
-            <p>Your name and email are optional—we respect your privacy. However, providing contact information allows us to follow up if needed. All questions are considered for publication, though we may edit for clarity and length.</p>
+      <!-- Submit Content -->
+      <section>
+        <h2>Common Man's Counsel: Submit Your Question</h2>
+        <p class="drop-cap">
+          We invite all readers to submit questions, concerns, or topics for
+          discussion. The Common Man's Counsel section addresses matters that
+          affect the daily lives of ordinary people, applying the principles of
+          common sense to real-world situations.
+        </p>
+        <p>
+          Your name and email are optional—we respect your privacy. However,
+          providing contact information allows us to follow up if needed. All
+          questions are considered for publication, though we may edit for
+          clarity and length.
+        </p>
 
-            <hr class="divider">
+        <hr class="divider" />
 
-            <!-- Submission Form -->
-            <form action="mailto:placeholder@email.com" method="post" enctype="text/plain">
-                <label for="name">Your Name (Optional):</label>
-                <input type="text" id="name" name="name" placeholder="John Doe">
+        <!-- Submission Form -->
+        <form id="counsel-form">
+          <label for="name">Your Name (Optional):</label>
+          <input type="text" id="name" name="name" placeholder="John Doe" />
 
-                <label for="email">Your Email (Optional):</label>
-                <input type="email" id="email" name="email" placeholder="your.email@example.com">
+          <label for="profession">Profession (Optional):</label>
+          <input
+            type="text"
+            id="profession"
+            name="profession"
+            placeholder="Farmer, Engineer, etc."
+          />
 
-                <label for="question">Your Question or Concern:</label>
-                <textarea id="question" name="question" required placeholder="Please enter your question or concern here. We will consider it for publication in the Common Man's Counsel section."></textarea>
+          <label for="state">State (Optional):</label>
+          <select id="state" name="state">
+            <option value="">Select State</option>
+            <option value="AL">Alabama</option>
+            <option value="AK">Alaska</option>
+            <option value="AZ">Arizona</option>
+            <option value="AR">Arkansas</option>
+            <option value="CA">California</option>
+            <option value="CO">Colorado</option>
+            <option value="CT">Connecticut</option>
+            <option value="DE">Delaware</option>
+            <option value="FL">Florida</option>
+            <option value="GA">Georgia</option>
+            <option value="HI">Hawaii</option>
+            <option value="ID">Idaho</option>
+            <option value="IL">Illinois</option>
+            <option value="IN">Indiana</option>
+            <option value="IA">Iowa</option>
+            <option value="KS">Kansas</option>
+            <option value="KY">Kentucky</option>
+            <option value="LA">Louisiana</option>
+            <option value="ME">Maine</option>
+            <option value="MD">Maryland</option>
+            <option value="MA">Massachusetts</option>
+            <option value="MI">Michigan</option>
+            <option value="MN">Minnesota</option>
+            <option value="MS">Mississippi</option>
+            <option value="MO">Missouri</option>
+            <option value="MT">Montana</option>
+            <option value="NE">Nebraska</option>
+            <option value="NV">Nevada</option>
+            <option value="NH">New Hampshire</option>
+            <option value="NJ">New Jersey</option>
+            <option value="NM">New Mexico</option>
+            <option value="NY">New York</option>
+            <option value="NC">North Carolina</option>
+            <option value="ND">North Dakota</option>
+            <option value="OH">Ohio</option>
+            <option value="OK">Oklahoma</option>
+            <option value="OR">Oregon</option>
+            <option value="PA">Pennsylvania</option>
+            <option value="RI">Rhode Island</option>
+            <option value="SC">South Carolina</option>
+            <option value="SD">South Dakota</option>
+            <option value="TN">Tennessee</option>
+            <option value="TX">Texas</option>
+            <option value="UT">Utah</option>
+            <option value="VT">Vermont</option>
+            <option value="VA">Virginia</option>
+            <option value="WA">Washington</option>
+            <option value="WV">West Virginia</option>
+            <option value="WI">Wisconsin</option>
+            <option value="WY">Wyoming</option>
+          </select>
 
-                <button type="submit">Submit Question</button>
-            </form>
+          <label for="question">Your Question or Concern:</label>
+          <textarea
+            id="question"
+            name="question"
+            required
+            placeholder="Please enter your question or concern here. We will consider it for publication in the Common Man's Counsel section."
+          ></textarea>
 
-            <hr class="divider">
+          <!-- Honeypot field -->
+          <input type="text" name="website_url" style="display: none" />
 
-            <p style="font-size: 0.9em; font-style: italic;">Note: This form uses a mailto: action. Customize the email address in the form action attribute, or integrate with your preferred email service provider or form handling service. For production use, consider implementing proper form handling to ensure reliable delivery of submissions.</p>
-        </section>
+          <button type="submit">Submit Question</button>
+        </form>
 
-        <footer>
-            <p>&copy; 2026 The Watchman's Cry: Common Sense Reborn</p>
-        </footer>
+        <!-- Success/Error message will appear here -->
+        <div id="counsel-message" style="margin-top: 1em"></div>
+
+        <hr class="divider" />
+
+        <p style="font-size: 0.9em; font-style: italic">
+          Note: This form now submits directly to our secure backend. No email
+          service required.
+        </p>
+      </section>
+
+      <footer>
+        <p>&copy; 2026 The Watchman's Cry: Common Sense Reborn</p>
+      </footer>
     </div>
     <!-- Page footer -->
-    <div class="page-footer">
-      RSJr. For the Republic.
-    </div>
-</body>
+    <div class="page-footer">RSJr. For the Republic.</div>
+  </body>
 </html>

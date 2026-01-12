@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- 
+<!--
    Deployment to Vercel (Jan 2026):
    1. Push to GitHub repo
    2. https://vercel.com → New Project → Import GitHub repo
@@ -14,6 +14,12 @@
     <title>The Watchman's Cry - Coming Soon</title>
     <link rel="stylesheet" href="css/style.css" />
     <script src="js/script.js" defer></script>
+    <!-- Supabase JS CDN - latest v2 as of Jan 2026 -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <!-- Your client + form handler -->
+    <script src="js/supabase-client.js"></script>
+    <script src="js/forms.js"></script>
   </head>
   <body>
     <div class="container">
@@ -125,24 +131,18 @@
           privacy — your address will never be shared or sold.
         </p>
 
-        <!-- === PASTE YOUR GOOGLE FORMS IFRAME HERE === -->
-        <!-- Replace the entire iframe below with the one you copied from Google Forms -->
-        <div class="form-embed">
-          <iframe
-            src="https://docs.google.com/forms/d/e/1FAIpQLSfjHOaxJG_rWlaMXopn5tp13ivmTKGUuHltmZ2x6SWBAbWkaQ/viewform?embedded=true"
-            width="640"
-            height="493"
-            frameborder="0"
-            marginheight="0"
-            marginwidth="0"
-            >Loading…</iframe
-          >
-        </div>
-        <!-- Helpful comment for you:
-                 - If the form looks too tall/short, change height="700" (try 600–900)
-                 - width="100%" makes it responsive on mobile
-                 - The "Loading…" text shows while the form loads
-            -->
+        <form id="waitlist-form">
+          <label for="email">Email:</label>
+          <input type="email" id="email" name="email" required />
+
+          <!-- Honeypot field - hidden from humans, filled by bots -->
+          <input type="text" name="website_url" style="display: none" />
+
+          <button type="submit">Join Waitlist</button>
+        </form>
+
+        <!-- Success/Error message will appear here -->
+        <div id="waitlist-message" style="margin-top: 1em"></div>
       </section>
 
       <hr class="divider" />

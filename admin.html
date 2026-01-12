@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Watchman Admin</title>
+    <link rel="stylesheet" href="css/style.css" />
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabase-client.js"></script>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>The Watchman's Cry – Admin Only</h1>
+        <hr class="divider" />
+      </header>
+
+      <div id="login" style="text-align: center; margin: 4em 0">
+        <h3>Admin Access</h3>
+        <input type="password" id="admin-pass" placeholder="Enter passphrase" />
+        <button onclick="checkAdmin()">Enter</button>
+      </div>
+
+      <div id="admin-content" style="display: none">
+        <h2>Submissions</h2>
+        <h3>Waitlist Emails</h3>
+        <pre id="waitlist-data">Loading...</pre>
+
+        <h3>Counsel Questions</h3>
+        <pre id="counsel-data">Loading...</pre>
+
+        <!-- Metrics placeholder – Vercel Analytics or simple counter later -->
+        <h3>Site Metrics (coming soon)</h3>
+        <p>
+          Visitor count, time on page, etc. – integrate Vercel Analytics or
+          Plausible later.
+        </p>
+      </div>
+
+      <script>
+        const REAL_PASSWORD = "change_this_to_something_long_and_secret_2026"; // CHANGE THIS!
+
+        function checkAdmin() {
+          const pass = document.getElementById("admin-pass").value;
+          if (pass === REAL_PASSWORD) {
+            document.getElementById("login").style.display = "none";
+            document.getElementById("admin-content").style.display = "block";
+            loadSubmissions();
+          } else {
+            alert("Access denied.");
+          }
+        }
+
+        async function loadSubmissions() {
+          try {
+            // Use anon key - reads blocked, so this will fail until you...
+            // OPTION A: Temporarily use service_role key (NEVER in production client!)
+            // OPTION B: Add Supabase Auth + login (recommended long-term)
+            // For now - this shows structure (will error until auth added)
+            const { data: waitlist } = await supabaseClient
+              .from("waitlist")
+              .select("*")
+              .order("created_at", { ascending: false });
+            document.getElementById("waitlist-data").textContent =
+              JSON.stringify(waitlist, null, 2) || "No data or access denied";
+
+            const { data: counsel } = await supabaseClient
+              .from("counsel_questions")
+              .select("*")
+              .order("created_at", { ascending: false });
+            document.getElementById("counsel-data").textContent =
+              JSON.stringify(counsel, null, 2) || "No data or access denied";
+          } catch (err) {
+            document.getElementById("waitlist-data").textContent =
+              "Error loading data: " + err.message;
+          }
+        }
+      </script>
+    </div>
+  </body>
+</html>
