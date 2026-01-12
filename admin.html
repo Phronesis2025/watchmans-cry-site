@@ -192,11 +192,14 @@
           const vaqExists = typeof window.vaq !== 'undefined';
           const analyticsActive = vaExists || vaqExists;
           
-          // Also check if we're on Vercel (the script should load automatically)
-          const isVercel = window.location.hostname.includes('vercel.app') || 
-                          window.location.hostname.includes('vercel.sh');
+          // Check if we're on a Vercel domain (for informational purposes)
+          // Note: Custom domains also work with Vercel Analytics
+          const isVercelDomain = window.location.hostname.includes('vercel.app') || 
+                                 window.location.hostname.includes('vercel.sh');
+          const isCustomDomain = !isVercelDomain;
           
           // Check if the analytics script file exists by trying to fetch it
+          // This is the definitive check - if script exists, analytics is available
           let scriptExists = false;
           let scriptError = null;
           try {
@@ -209,14 +212,20 @@
             scriptError = err.message;
           }
           
+          // If script exists but analytics isn't active, it might just need time to load
+          // or the script loaded but hasn't initialized yet
+          const likelyActive = scriptExists || analyticsActive;
+          
           // Log diagnostic info to console
           console.log('Analytics Diagnostics:', {
             vaExists,
             vaqExists,
             analyticsActive,
-            isVercel,
+            isVercelDomain,
+            isCustomDomain,
             scriptExists,
             scriptError,
+            likelyActive,
             hostname: window.location.hostname
           });
           
@@ -226,38 +235,48 @@
               <div style="margin-top: 1em; padding: 1em; background-color: rgba(244, 232, 212, 0.3); border: 1px solid #000;">
                 <p style="margin-bottom: 0.5em;">
                   <strong>Tracking Status:</strong> 
-                  <span style="color: ${analyticsActive ? 'darkgreen' : '#666'};">
-                    ${analyticsActive ? '✓ Active' : 'Not detected'}
+                  <span style="color: ${likelyActive ? 'darkgreen' : '#666'};">
+                    ${analyticsActive ? '✓ Active' : scriptExists ? '⚠ Script available (may need refresh)' : 'Not detected'}
                   </span>
                 </p>
                 ${analyticsActive ? `
                   <p style="font-size: 0.9em; color: #666; margin-top: 0.5em;">
                     Page views are being tracked automatically. Analytics data is collected server-side by Vercel.
                   </p>
+                ` : scriptExists ? `
+                  <p style="font-size: 0.9em; color: #666; margin-top: 0.5em;">
+                    The analytics script is available, but hasn't initialized yet. This is normal and tracking should start working shortly.
+                    ${isCustomDomain ? ' Custom domains work with Vercel Analytics.' : ''}
+                  </p>
+                  <p style="font-size: 0.85em; color: #666; margin-top: 0.5em; font-style: italic;">
+                    Try refreshing the page in a few moments to see if status updates to "Active".
+                  </p>
                 ` : `
                   <p style="font-size: 0.9em; color: #666; margin-top: 0.5em;">
-                    <strong>Analytics script not detected.</strong> This could mean:
+                    <strong>Analytics script not available.</strong> This means:
                   </p>
                   <ul style="font-size: 0.9em; color: #666; margin-left: 1.5em; margin-top: 0.5em;">
-                    <li>Vercel Analytics needs to be enabled in your project settings</li>
-                    <li>The script may not have loaded yet (try refreshing)</li>
-                    <li>You may need to enable Web Analytics in Vercel Dashboard → Project Settings → Analytics</li>
+                    <li>Web Analytics needs to be enabled in your Vercel project settings</li>
+                    <li>Go to Vercel Dashboard → Your Project → Settings → Analytics</li>
+                    <li>Enable "Web Analytics" and wait 2-3 minutes for it to activate</li>
                   </ul>
-                  ${isVercel ? `
-                    <p style="font-size: 0.9em; color: darkred; margin-top: 0.5em; font-weight: 700;">
-                      ⚠ You're on Vercel but analytics isn't active. Please enable Web Analytics in your project settings.
+                  ${isCustomDomain ? `
+                    <p style="font-size: 0.9em; color: #666; margin-top: 0.5em; padding: 0.5em; background-color: rgba(244, 232, 212, 0.5); border-left: 3px solid #000;">
+                      <strong>Note:</strong> You're using a custom domain (${escapeHtml(window.location.hostname)}). 
+                      Vercel Analytics works with custom domains once enabled in project settings.
                     </p>
                   ` : ''}
                   <div style="margin-top: 1em; padding: 0.75em; background-color: rgba(0,0,0,0.05); border: 1px solid #ccc; font-size: 0.85em;">
                     <p style="margin-bottom: 0.5em; font-weight: 700;">Diagnostic Info:</p>
                     <ul style="margin-left: 1.5em; color: #666;">
                       <li>Script file exists: ${scriptExists ? '✓ Yes' : '✗ No'}</li>
-                      <li>On Vercel domain: ${isVercel ? '✓ Yes' : '✗ No'}</li>
+                      <li>Domain type: ${isCustomDomain ? 'Custom domain' : 'Vercel domain'}</li>
+                      <li>Hostname: ${escapeHtml(window.location.hostname)}</li>
                       ${scriptError ? `<li style="color: darkred;">Error: ${escapeHtml(scriptError)}</li>` : ''}
                     </ul>
-                    ${!scriptExists && isVercel ? `
+                    ${!scriptExists ? `
                       <p style="color: darkred; margin-top: 0.5em; font-weight: 700;">
-                        The analytics script file is not available. This confirms Web Analytics needs to be enabled in your Vercel project settings.
+                        The analytics script file is not available. Enable Web Analytics in Vercel project settings.
                       </p>
                     ` : ''}
                   </div>
