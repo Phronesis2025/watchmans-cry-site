@@ -185,7 +185,7 @@
           metricsEl.innerHTML = "<p>Loading analytics...</p>";
 
           // Wait a moment for scripts to load, then check analytics status
-          await new Promise(resolve => setTimeout(resolve, 500));
+          await new Promise(resolve => setTimeout(resolve, 1000));
           
           // Check if analytics script is loaded - check both window.va and window.vaq
           const vaExists = typeof window.va !== 'undefined';
@@ -195,6 +195,30 @@
           // Also check if we're on Vercel (the script should load automatically)
           const isVercel = window.location.hostname.includes('vercel.app') || 
                           window.location.hostname.includes('vercel.sh');
+          
+          // Check if the analytics script file exists by trying to fetch it
+          let scriptExists = false;
+          let scriptError = null;
+          try {
+            const response = await fetch('/_vercel/insights/script.js', { method: 'HEAD' });
+            scriptExists = response.ok;
+            if (!response.ok) {
+              scriptError = `Script returned status ${response.status}`;
+            }
+          } catch (err) {
+            scriptError = err.message;
+          }
+          
+          // Log diagnostic info to console
+          console.log('Analytics Diagnostics:', {
+            vaExists,
+            vaqExists,
+            analyticsActive,
+            isVercel,
+            scriptExists,
+            scriptError,
+            hostname: window.location.hostname
+          });
           
           try {
             let html = `
@@ -224,6 +248,19 @@
                       ⚠ You're on Vercel but analytics isn't active. Please enable Web Analytics in your project settings.
                     </p>
                   ` : ''}
+                  <div style="margin-top: 1em; padding: 0.75em; background-color: rgba(0,0,0,0.05); border: 1px solid #ccc; font-size: 0.85em;">
+                    <p style="margin-bottom: 0.5em; font-weight: 700;">Diagnostic Info:</p>
+                    <ul style="margin-left: 1.5em; color: #666;">
+                      <li>Script file exists: ${scriptExists ? '✓ Yes' : '✗ No'}</li>
+                      <li>On Vercel domain: ${isVercel ? '✓ Yes' : '✗ No'}</li>
+                      ${scriptError ? `<li style="color: darkred;">Error: ${escapeHtml(scriptError)}</li>` : ''}
+                    </ul>
+                    ${!scriptExists && isVercel ? `
+                      <p style="color: darkred; margin-top: 0.5em; font-weight: 700;">
+                        The analytics script file is not available. This confirms Web Analytics needs to be enabled in your Vercel project settings.
+                      </p>
+                    ` : ''}
+                  </div>
                 `}
               </div>
               <p style="margin-top: 1.5em;">
