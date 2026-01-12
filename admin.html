@@ -180,28 +180,74 @@
           loadVercelMetrics();
         }
 
-        function loadVercelMetrics() {
+        async function loadVercelMetrics() {
           const metricsEl = document.getElementById("vercel-metrics");
+          metricsEl.innerHTML = "<p>Loading analytics...</p>";
 
-          // Vercel Analytics is automatically enabled for deployed projects
-          // For static HTML sites, analytics are collected server-side
-          metricsEl.innerHTML = `
-            <p><strong>Vercel Analytics</strong></p>
-            <p style="font-size: 0.9em; color: #666; margin-top: 0.5em;">
-              Vercel automatically collects analytics for all deployed projects. 
-              View detailed metrics including page views, unique visitors, top pages, 
-              and more in your Vercel Dashboard.
-            </p>
-            <p style="margin-top: 1em;">
-              <a href="https://vercel.com/dashboard" target="_blank" style="color: #000; text-decoration: underline; font-weight: 700;">
-                Open Vercel Dashboard →
-              </a>
-            </p>
-            <p style="font-size: 0.85em; color: #666; margin-top: 1em; font-style: italic;">
-              Note: Analytics data is available in your project's Analytics tab after deployment. 
-              Real-time metrics may take a few minutes to appear.
-            </p>
-          `;
+          // Check if analytics script is loaded
+          const analyticsActive = typeof window.va !== 'undefined';
+          
+          try {
+            // Try to fetch analytics from Vercel API
+            // Note: This requires Vercel API token and project ID
+            // For now, we'll show that tracking is active and provide dashboard link
+            let html = `
+              <p><strong>Vercel Analytics Status</strong></p>
+              <div style="margin-top: 1em; padding: 1em; background-color: rgba(244, 232, 212, 0.3); border: 1px solid #000;">
+                <p style="margin-bottom: 0.5em;">
+                  <strong>Tracking Status:</strong> 
+                  <span style="color: ${analyticsActive ? 'darkgreen' : '#666'};">
+                    ${analyticsActive ? '✓ Active' : 'Not detected (may need deployment)'}
+                  </span>
+                </p>
+                ${analyticsActive ? `
+                  <p style="font-size: 0.9em; color: #666; margin-top: 0.5em;">
+                    Page views are being tracked automatically. Analytics data is collected server-side by Vercel.
+                  </p>
+                ` : `
+                  <p style="font-size: 0.9em; color: #666; margin-top: 0.5em;">
+                    Analytics script will be active once deployed to Vercel. The tracking script has been added to all pages.
+                  </p>
+                `}
+              </div>
+              <p style="margin-top: 1.5em;">
+                <strong>View Detailed Analytics:</strong>
+              </p>
+              <p style="margin-top: 0.5em;">
+                <a href="https://vercel.com/dashboard" target="_blank" style="color: #000; text-decoration: underline; font-weight: 700;">
+                  Open Vercel Dashboard →
+                </a>
+              </p>
+              <p style="font-size: 0.9em; color: #666; margin-top: 1em;">
+                In your Vercel Dashboard, you can view:
+              </p>
+              <ul style="font-size: 0.9em; color: #666; margin-left: 1.5em; margin-top: 0.5em;">
+                <li>Page views and unique visitors</li>
+                <li>Top pages and referrers</li>
+                <li>Geographic data</li>
+                <li>Device and browser statistics</li>
+                <li>Performance metrics</li>
+              </ul>
+              <p style="font-size: 0.85em; color: #666; margin-top: 1em; font-style: italic; padding-top: 1em; border-top: 1px solid #ccc;">
+                <strong>Note:</strong> Analytics data appears in your project's Analytics tab after deployment. 
+                Real-time metrics may take a few minutes to appear. To display metrics directly on this page, 
+                you would need to configure Vercel API access (requires access token and project ID).
+              </p>
+            `;
+            
+            metricsEl.innerHTML = html;
+          } catch (err) {
+            console.error("Error loading analytics info:", err);
+            metricsEl.innerHTML = `
+              <p><strong>Vercel Analytics</strong></p>
+              <p style="color: darkred;">Error loading analytics information. Check console for details.</p>
+              <p style="margin-top: 1em;">
+                <a href="https://vercel.com/dashboard" target="_blank" style="color: #000; text-decoration: underline; font-weight: 700;">
+                  Open Vercel Dashboard →
+                </a>
+              </p>
+            `;
+          }
         }
       </script>
     </div>
