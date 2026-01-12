@@ -73,11 +73,14 @@ h3 {
   font-weight: 700;
 }
 
-/* Ornamental dividers - Dotted line for newspaper section breaks */
-hr.divider {
+/* Ornamental dividers - Image divider for newspaper section breaks */
+img.divider {
+  width: 100%;
+  max-width: 800px;
+  height: auto;
+  display: block;
+  margin: 2em auto;
   border: none;
-  border-top: 2px dotted #000;
-  margin: 2em 0;
 }
 
 /* Woodcut image styling - Simple border to frame illustrations */
@@ -299,7 +302,6 @@ a:hover {
 footer {
   margin-top: 3em;
   padding-top: 2em;
-  border-top: 2px dotted #000;
   text-align: center;
 }
 
