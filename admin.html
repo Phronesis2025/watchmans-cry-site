@@ -17,15 +17,59 @@
 
       <div id="login" style="text-align: center; margin: 4em 0">
         <h3>Admin Access</h3>
-        <div id="login-form" style="max-width: 400px; margin: 0 auto;">
-          <input type="email" id="admin-email" placeholder="Email" style="width: 100%; padding: 0.5em; margin-bottom: 1em; border: 1px solid #000; font-family: 'EB Garamond', serif;" />
-          <input type="password" id="admin-password" placeholder="Password" style="width: 100%; padding: 0.5em; margin-bottom: 1em; border: 1px solid #000; font-family: 'EB Garamond', serif;" />
-          <button onclick="signIn()" style="padding: 0.75em 2em; background-color: #000; color: #f4e8d4; border: none; font-family: 'EB Garamond', serif; font-size: 1em; font-weight: 700; cursor: pointer; width: 100%;">Sign In</button>
-          <p id="login-error" style="color: darkred; margin-top: 1em; display: none;"></p>
+        <div id="login-form" style="max-width: 400px; margin: 0 auto">
+          <input
+            type="email"
+            id="admin-email"
+            placeholder="Email"
+            style="
+              width: 100%;
+              padding: 0.5em;
+              margin-bottom: 1em;
+              border: 1px solid #000;
+              font-family: 'EB Garamond', serif;
+            "
+          />
+          <input
+            type="password"
+            id="admin-password"
+            placeholder="Password"
+            style="
+              width: 100%;
+              padding: 0.5em;
+              margin-bottom: 1em;
+              border: 1px solid #000;
+              font-family: 'EB Garamond', serif;
+            "
+          />
+          <button
+            onclick="signIn()"
+            style="
+              padding: 0.75em 2em;
+              background-color: #000;
+              color: #f4e8d4;
+              border: none;
+              font-family: 'EB Garamond', serif;
+              font-size: 1em;
+              font-weight: 700;
+              cursor: pointer;
+              width: 100%;
+            "
+          >
+            Sign In
+          </button>
+          <p
+            id="login-error"
+            style="color: darkred; margin-top: 1em; display: none"
+          ></p>
         </div>
         <!-- Signup disabled for security - accounts must be created through Supabase dashboard -->
-        <p id="signup-info" style="font-size: 0.9em; color: #666; margin-top: 1em; display: none;">
-          Admin accounts must be created through the Supabase dashboard for security.
+        <p
+          id="signup-info"
+          style="font-size: 0.9em; color: #666; margin-top: 1em; display: none"
+        >
+          Admin accounts must be created through the Supabase dashboard for
+          security.
         </p>
       </div>
 
@@ -54,7 +98,9 @@
 
         // Check if user is already signed in on page load
         window.addEventListener("DOMContentLoaded", async () => {
-          const { data: { session } } = await supabaseClient.auth.getSession();
+          const {
+            data: { session },
+          } = await supabaseClient.auth.getSession();
           if (session) {
             document.getElementById("login").style.display = "none";
             document.getElementById("admin-content").style.display = "block";
@@ -84,7 +130,8 @@
 
           if (error) {
             // Security: Don't expose detailed error messages that could help attackers
-            errorEl.textContent = "Invalid email or password. Please try again.";
+            errorEl.textContent =
+              "Invalid email or password. Please try again.";
             errorEl.style.display = "block";
             return;
           }
@@ -119,7 +166,9 @@
             if (counselError) {
               console.error("Supabase error:", counselError);
               counselEl.innerHTML = `
-                <p style="color: darkred;"><strong>Error:</strong> ${escapeHtml(counselError.message)}</p>
+                <p style="color: darkred;"><strong>Error:</strong> ${escapeHtml(
+                  counselError.message
+                )}</p>
                 <p style="font-size: 0.9em; color: #666; margin-top: 0.5em;">
                   <strong>Note:</strong> This is likely a Row Level Security (RLS) policy issue. 
                   To fix this, you need to:
@@ -155,11 +204,21 @@
                   ? new Date(entry.created_at).toLocaleDateString()
                   : "Date unknown";
                 html += `<tr style="border-bottom: 1px solid #000;">`;
-                html += `<td style="padding: 0.75em; border: 1px solid #000;">${escapeHtml(date)}</td>`;
-                html += `<td style="padding: 0.75em; border: 1px solid #000;">${escapeHtml(entry.name || "-")}</td>`;
-                html += `<td style="padding: 0.75em; border: 1px solid #000;">${escapeHtml(entry.profession || "-")}</td>`;
-                html += `<td style="padding: 0.75em; border: 1px solid #000;">${escapeHtml(entry.state || "-")}</td>`;
-                html += `<td style="padding: 0.75em; border: 1px solid #000;">${escapeHtml(entry.question || "No question text")}</td>`;
+                html += `<td style="padding: 0.75em; border: 1px solid #000;">${escapeHtml(
+                  date
+                )}</td>`;
+                html += `<td style="padding: 0.75em; border: 1px solid #000;">${escapeHtml(
+                  entry.name || "-"
+                )}</td>`;
+                html += `<td style="padding: 0.75em; border: 1px solid #000;">${escapeHtml(
+                  entry.profession || "-"
+                )}</td>`;
+                html += `<td style="padding: 0.75em; border: 1px solid #000;">${escapeHtml(
+                  entry.state || "-"
+                )}</td>`;
+                html += `<td style="padding: 0.75em; border: 1px solid #000;">${escapeHtml(
+                  entry.question || "No question text"
+                )}</td>`;
                 html += `</tr>`;
               });
               html += `</tbody>`;
@@ -169,7 +228,9 @@
           } catch (err) {
             console.error("Exception loading counsel questions:", err);
             counselEl.innerHTML = `
-              <p style="color: darkred;"><strong>Error loading counsel questions:</strong> ${escapeHtml(err.message)}</p>
+              <p style="color: darkred;"><strong>Error loading counsel questions:</strong> ${escapeHtml(
+                err.message
+              )}</p>
               <p style="font-size: 0.9em; color: #666; margin-top: 0.5em;">
                 Check browser console (F12) for more details.
               </p>
@@ -185,25 +246,28 @@
           metricsEl.innerHTML = "<p>Loading analytics...</p>";
 
           // Wait a moment for scripts to load, then check analytics status
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+
           // Check if analytics script is loaded - check both window.va and window.vaq
-          const vaExists = typeof window.va !== 'undefined';
-          const vaqExists = typeof window.vaq !== 'undefined';
+          const vaExists = typeof window.va !== "undefined";
+          const vaqExists = typeof window.vaq !== "undefined";
           const analyticsActive = vaExists || vaqExists;
-          
+
           // Check if we're on a Vercel domain (for informational purposes)
           // Note: Custom domains also work with Vercel Analytics
-          const isVercelDomain = window.location.hostname.includes('vercel.app') || 
-                                 window.location.hostname.includes('vercel.sh');
+          const isVercelDomain =
+            window.location.hostname.includes("vercel.app") ||
+            window.location.hostname.includes("vercel.sh");
           const isCustomDomain = !isVercelDomain;
-          
+
           // Check if the analytics script file exists by trying to fetch it
           // This is the definitive check - if script exists, analytics is available
           let scriptExists = false;
           let scriptError = null;
           try {
-            const response = await fetch('/_vercel/insights/script.js', { method: 'HEAD' });
+            const response = await fetch("/_vercel/insights/script.js", {
+              method: "HEAD",
+            });
             scriptExists = response.ok;
             if (!response.ok) {
               scriptError = `Script returned status ${response.status}`;
@@ -211,13 +275,13 @@
           } catch (err) {
             scriptError = err.message;
           }
-          
+
           // If script exists but analytics isn't active, it might just need time to load
           // or the script loaded but hasn't initialized yet
           const likelyActive = scriptExists || analyticsActive;
-          
+
           // Log diagnostic info to console
-          console.log('Analytics Diagnostics:', {
+          console.log("Analytics Diagnostics:", {
             vaExists,
             vaqExists,
             analyticsActive,
@@ -226,32 +290,47 @@
             scriptExists,
             scriptError,
             likelyActive,
-            hostname: window.location.hostname
+            hostname: window.location.hostname,
           });
-          
+
           try {
             let html = `
               <p><strong>Vercel Analytics Status</strong></p>
               <div style="margin-top: 1em; padding: 1em; background-color: rgba(244, 232, 212, 0.3); border: 1px solid #000;">
                 <p style="margin-bottom: 0.5em;">
                   <strong>Tracking Status:</strong> 
-                  <span style="color: ${likelyActive ? 'darkgreen' : '#666'};">
-                    ${analyticsActive ? '✓ Active' : scriptExists ? '⚠ Script available (may need refresh)' : 'Not detected'}
+                  <span style="color: ${likelyActive ? "darkgreen" : "#666"};">
+                    ${
+                      analyticsActive
+                        ? "✓ Active"
+                        : scriptExists
+                        ? "⚠ Script available (may need refresh)"
+                        : "Not detected"
+                    }
                   </span>
                 </p>
-                ${analyticsActive ? `
+                ${
+                  analyticsActive
+                    ? `
                   <p style="font-size: 0.9em; color: #666; margin-top: 0.5em;">
                     Page views are being tracked automatically. Analytics data is collected server-side by Vercel.
                   </p>
-                ` : scriptExists ? `
+                `
+                    : scriptExists
+                    ? `
                   <p style="font-size: 0.9em; color: #666; margin-top: 0.5em;">
                     The analytics script is available, but hasn't initialized yet. This is normal and tracking should start working shortly.
-                    ${isCustomDomain ? ' Custom domains work with Vercel Analytics.' : ''}
+                    ${
+                      isCustomDomain
+                        ? " Custom domains work with Vercel Analytics."
+                        : ""
+                    }
                   </p>
                   <p style="font-size: 0.85em; color: #666; margin-top: 0.5em; font-style: italic;">
                     Try refreshing the page in a few moments to see if status updates to "Active".
                   </p>
-                ` : `
+                `
+                    : `
                   <p style="font-size: 0.9em; color: #666; margin-top: 0.5em;">
                     <strong>Analytics script not available.</strong> This means:
                   </p>
@@ -260,27 +339,48 @@
                     <li>Go to Vercel Dashboard → Your Project → Settings → Analytics</li>
                     <li>Enable "Web Analytics" and wait 2-3 minutes for it to activate</li>
                   </ul>
-                  ${isCustomDomain ? `
+                  ${
+                    isCustomDomain
+                      ? `
                     <p style="font-size: 0.9em; color: #666; margin-top: 0.5em; padding: 0.5em; background-color: rgba(244, 232, 212, 0.5); border-left: 3px solid #000;">
-                      <strong>Note:</strong> You're using a custom domain (${escapeHtml(window.location.hostname)}). 
+                      <strong>Note:</strong> You're using a custom domain (${escapeHtml(
+                        window.location.hostname
+                      )}). 
                       Vercel Analytics works with custom domains once enabled in project settings.
                     </p>
-                  ` : ''}
+                  `
+                      : ""
+                  }
                   <div style="margin-top: 1em; padding: 0.75em; background-color: rgba(0,0,0,0.05); border: 1px solid #ccc; font-size: 0.85em;">
                     <p style="margin-bottom: 0.5em; font-weight: 700;">Diagnostic Info:</p>
                     <ul style="margin-left: 1.5em; color: #666;">
-                      <li>Script file exists: ${scriptExists ? '✓ Yes' : '✗ No'}</li>
-                      <li>Domain type: ${isCustomDomain ? 'Custom domain' : 'Vercel domain'}</li>
+                      <li>Script file exists: ${
+                        scriptExists ? "✓ Yes" : "✗ No"
+                      }</li>
+                      <li>Domain type: ${
+                        isCustomDomain ? "Custom domain" : "Vercel domain"
+                      }</li>
                       <li>Hostname: ${escapeHtml(window.location.hostname)}</li>
-                      ${scriptError ? `<li style="color: darkred;">Error: ${escapeHtml(scriptError)}</li>` : ''}
+                      ${
+                        scriptError
+                          ? `<li style="color: darkred;">Error: ${escapeHtml(
+                              scriptError
+                            )}</li>`
+                          : ""
+                      }
                     </ul>
-                    ${!scriptExists ? `
+                    ${
+                      !scriptExists
+                        ? `
                       <p style="color: darkred; margin-top: 0.5em; font-weight: 700;">
                         The analytics script file is not available. Enable Web Analytics in Vercel project settings.
                       </p>
-                    ` : ''}
+                    `
+                        : ""
+                    }
                   </div>
-                `}
+                `
+                }
               </div>
               <p style="margin-top: 1.5em;">
                 <strong>View Detailed Analytics:</strong>
@@ -315,7 +415,7 @@
                 Real-time metrics may take a few minutes to appear after enabling.
               </p>
             `;
-            
+
             metricsEl.innerHTML = html;
           } catch (err) {
             console.error("Error loading analytics info:", err);
@@ -339,17 +439,20 @@
         <ul>
           <li>
             <a href="index.html">
-              <span class="nav-initial">H</span><span class="nav-word">ome</span>
+              <span class="nav-initial">H</span
+              ><span class="nav-word">ome</span>
             </a>
           </li>
           <li>
             <a href="about.html">
-              <span class="nav-initial">A</span><span class="nav-word">bout</span>
+              <span class="nav-initial">A</span
+              ><span class="nav-word">bout</span>
             </a>
           </li>
           <li>
             <a href="submit.html">
-              <span class="nav-initial">S</span><span class="nav-word">ubmit</span>
+              <span class="nav-initial">S</span
+              ><span class="nav-word">ubmit</span>
             </a>
           </li>
         </ul>
