@@ -23,10 +23,6 @@
 
       <div id="admin-content" style="display: none">
         <h2>Submissions</h2>
-        <h3>Waitlist Emails</h3>
-        <div id="waitlist-data" style="margin-bottom: 2em">
-          <p>Loading...</p>
-        </div>
 
         <h3>Counsel Questions</h3>
         <div id="counsel-data" style="margin-bottom: 2em">
@@ -54,50 +50,51 @@
         }
 
         async function loadSubmissions() {
-          // Load waitlist data
-          try {
-            const { data: waitlist, error: waitlistError } =
-              await supabaseClient
-                .from("waitlist")
-                .select("*")
-                .order("created_at", { ascending: false });
-
-            const waitlistEl = document.getElementById("waitlist-data");
-            if (waitlistError) {
-              waitlistEl.innerHTML = `<p style="color: darkred;">Error: ${waitlistError.message}</p><p style="font-size: 0.9em; color: #666;">Note: You may need to configure Row Level Security (RLS) policies in Supabase to allow reads, or use a service_role key server-side.</p>`;
-            } else if (!waitlist || waitlist.length === 0) {
-              waitlistEl.innerHTML = "<p>No waitlist entries yet.</p>";
-            } else {
-              let html = `<p><strong>Total: ${waitlist.length} entries</strong></p><table style="width: 100%; border-collapse: collapse; margin-top: 1em;"><thead><tr style="border-bottom: 2px solid #000;"><th style="text-align: left; padding: 0.5em;">Email</th><th style="text-align: left; padding: 0.5em;">Date</th></tr></thead><tbody>`;
-              waitlist.forEach((entry) => {
-                const date = new Date(entry.created_at).toLocaleDateString();
-                html += `<tr style="border-bottom: 1px solid #ccc;"><td style="padding: 0.5em;">${entry.email}</td><td style="padding: 0.5em;">${date}</td></tr>`;
-              });
-              html += "</tbody></table>";
-              waitlistEl.innerHTML = html;
-            }
-          } catch (err) {
-            document.getElementById(
-              "waitlist-data"
-            ).innerHTML = `<p style="color: darkred;">Error loading waitlist: ${err.message}</p>`;
-          }
-
           // Load counsel questions data
+          const counselEl = document.getElementById("counsel-data");
+          counselEl.innerHTML = "<p>Loading counsel questions...</p>";
+
           try {
+            console.log(
+              "Attempting to load counsel questions from Supabase..."
+            );
             const { data: counsel, error: counselError } = await supabaseClient
               .from("counsel_questions")
               .select("*")
               .order("created_at", { ascending: false });
 
-            const counselEl = document.getElementById("counsel-data");
+            console.log("Supabase response:", {
+              data: counsel,
+              error: counselError,
+            });
+
             if (counselError) {
-              counselEl.innerHTML = `<p style="color: darkred;">Error: ${counselError.message}</p><p style="font-size: 0.9em; color: #666;">Note: You may need to configure Row Level Security (RLS) policies in Supabase to allow reads.</p>`;
+              console.error("Supabase error:", counselError);
+              counselEl.innerHTML = `
+                <p style="color: darkred;"><strong>Error:</strong> ${counselError.message}</p>
+                <p style="font-size: 0.9em; color: #666; margin-top: 0.5em;">
+                  <strong>Note:</strong> This is likely a Row Level Security (RLS) policy issue. 
+                  To fix this, you need to:
+                  <ol style="margin-left: 1.5em; margin-top: 0.5em;">
+                    <li>Go to your Supabase dashboard</li>
+                    <li>Navigate to Authentication → Policies for the "counsel_questions" table</li>
+                    <li>Create a policy that allows SELECT operations (or temporarily disable RLS for testing)</li>
+                    <li>Alternatively, use a service_role key server-side (never expose this in client code)</li>
+                  </ol>
+                  <p style="margin-top: 0.5em;">
+                    <strong>Debug info:</strong> Check browser console (F12) for detailed error information.
+                  </p>
+                </p>
+              `;
             } else if (!counsel || counsel.length === 0) {
               counselEl.innerHTML = "<p>No counsel questions yet.</p>";
             } else {
+              console.log(`Loaded ${counsel.length} counsel questions`);
               let html = `<p><strong>Total: ${counsel.length} questions</strong></p>`;
               counsel.forEach((entry, index) => {
-                const date = new Date(entry.created_at).toLocaleDateString();
+                const date = entry.created_at
+                  ? new Date(entry.created_at).toLocaleDateString()
+                  : "Date unknown";
                 html += `<div style="border: 1px solid #000; padding: 1em; margin: 1em 0;">`;
                 html += `<p><strong>Question ${
                   index + 1
@@ -108,65 +105,49 @@
                   html += `<p><strong>Profession:</strong> ${entry.profession}</p>`;
                 if (entry.state)
                   html += `<p><strong>State:</strong> ${entry.state}</p>`;
-                html += `<p><strong>Question:</strong> ${entry.question}</p>`;
+                html += `<p><strong>Question:</strong> ${
+                  entry.question || "No question text"
+                }</p>`;
                 html += `</div>`;
               });
               counselEl.innerHTML = html;
             }
           } catch (err) {
-            document.getElementById(
-              "counsel-data"
-            ).innerHTML = `<p style="color: darkred;">Error loading counsel questions: ${err.message}</p>`;
+            console.error("Exception loading counsel questions:", err);
+            counselEl.innerHTML = `
+              <p style="color: darkred;"><strong>Error loading counsel questions:</strong> ${err.message}</p>
+              <p style="font-size: 0.9em; color: #666; margin-top: 0.5em;">
+                Check browser console (F12) for more details.
+              </p>
+            `;
           }
 
-          // Load Vercel Analytics (if available)
+          // Load Vercel Analytics
           loadVercelMetrics();
         }
 
         function loadVercelMetrics() {
           const metricsEl = document.getElementById("vercel-metrics");
 
-          // Check if Vercel Analytics is available
-          if (typeof window.va !== "undefined") {
-            metricsEl.innerHTML = `
-              <p>Vercel Analytics is active.</p>
-              <p style="font-size: 0.9em; color: #666;">
-                For detailed metrics, visit your <a href="https://vercel.com/dashboard" target="_blank">Vercel Dashboard</a>.
-                Analytics data is collected automatically and viewable in the Vercel project dashboard.
-              </p>
-            `;
-          } else {
-            // Try to load Vercel Analytics script
-            const script = document.createElement("script");
-            script.src = "https://va.vercel-scripts.com/v1/script.debug.js";
-            script.defer = true;
-            script.onload = () => {
-              metricsEl.innerHTML = `
-                <p>Vercel Analytics script loaded.</p>
-                <p style="font-size: 0.9em; color: #666;">
-                  Analytics will begin tracking. View detailed metrics in your 
-                  <a href="https://vercel.com/dashboard" target="_blank">Vercel Dashboard</a>.
-                </p>
-              `;
-            };
-            script.onerror = () => {
-              metricsEl.innerHTML = `
-                <p style="color: darkred;">Vercel Analytics not configured.</p>
-                <p style="font-size: 0.9em; color: #666;">
-                  To enable Vercel Analytics:
-                  <ol style="margin-left: 1.5em; margin-top: 0.5em;">
-                    <li>Install @vercel/analytics in your project</li>
-                    <li>Add the Analytics component to your pages</li>
-                    <li>View metrics in your Vercel Dashboard</li>
-                  </ol>
-                  <p style="margin-top: 0.5em;">
-                    <a href="https://vercel.com/docs/analytics" target="_blank">Vercel Analytics Documentation</a>
-                  </p>
-                </p>
-              `;
-            };
-            document.head.appendChild(script);
-          }
+          // Vercel Analytics is automatically enabled for deployed projects
+          // For static HTML sites, analytics are collected server-side
+          metricsEl.innerHTML = `
+            <p><strong>Vercel Analytics</strong></p>
+            <p style="font-size: 0.9em; color: #666; margin-top: 0.5em;">
+              Vercel automatically collects analytics for all deployed projects. 
+              View detailed metrics including page views, unique visitors, top pages, 
+              and more in your Vercel Dashboard.
+            </p>
+            <p style="margin-top: 1em;">
+              <a href="https://vercel.com/dashboard" target="_blank" style="color: #000; text-decoration: underline; font-weight: 700;">
+                Open Vercel Dashboard →
+              </a>
+            </p>
+            <p style="font-size: 0.85em; color: #666; margin-top: 1em; font-style: italic;">
+              Note: Analytics data is available in your project's Analytics tab after deployment. 
+              Real-time metrics may take a few minutes to appear.
+            </p>
+          `;
         }
       </script>
     </div>
