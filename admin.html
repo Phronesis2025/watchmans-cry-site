@@ -98,6 +98,39 @@
           return div.innerHTML;
         }
 
+        // Convert page path to common name
+        function getPageName(path) {
+          const pageNames = {
+            '/': 'Home',
+            '/index.html': 'Home',
+            '/about.html': 'About',
+            '/submit.html': 'Submit',
+            '/staff.html': 'Voices',
+            '/archive.html': 'Archive',
+            '/privacy-policy.html': 'Privacy Policy',
+            '/test-analytics.html': 'Test Analytics',
+            '/admin.html': 'Admin',
+            '/prelaunch.html': 'Prelaunch'
+          };
+          
+          // Check exact match first
+          if (pageNames[path]) {
+            return pageNames[path];
+          }
+          
+          // Check if it's an archive edition
+          if (path.startsWith('/archive/')) {
+            const match = path.match(/edition-(\d{4}-\d{2}-\d{2})/);
+            if (match) {
+              return `Edition ${match[1]}`;
+            }
+            return 'Archive Edition';
+          }
+          
+          // Fallback: return path without leading slash
+          return path.replace(/^\//, '') || 'Home';
+        }
+
         // Check if user is already signed in on page load
         window.addEventListener("DOMContentLoaded", async () => {
           const {
@@ -317,22 +350,7 @@
               ${pageviewsRes?.top_pages?.length > 0 ? `
               <div style="margin-bottom: 2em; padding: 1em; background-color: rgba(244, 232, 212, 0.3); border: 1px solid #000;">
                 <h4 style="margin-top: 0; margin-bottom: 1em;">Top Pages</h4>
-                <table style="width: 100%; border-collapse: collapse;">
-                  <thead>
-                    <tr style="border-bottom: 2px solid #000;">
-                      <th style="padding: 0.5em; text-align: left; font-weight: 700;">Page</th>
-                      <th style="padding: 0.5em; text-align: right; font-weight: 700;">Views</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    ${pageviewsRes.top_pages.map((page, idx) => `
-                      <tr style="border-bottom: 1px solid #ccc;">
-                        <td style="padding: 0.5em;">${escapeHtml(page.path)}</td>
-                        <td style="padding: 0.5em; text-align: right;">${page.count}</td>
-                      </tr>
-                    `).join('')}
-                  </tbody>
-                </table>
+                <canvas id="topPagesChart" style="max-height: 400px;"></canvas>
               </div>
               ` : ''}
 
@@ -340,22 +358,7 @@
               ${devicesRes?.devices?.length > 0 ? `
               <div style="margin-bottom: 2em; padding: 1em; background-color: rgba(244, 232, 212, 0.3); border: 1px solid #000;">
                 <h4 style="margin-top: 0; margin-bottom: 1em;">Device Types</h4>
-                <table style="width: 100%; border-collapse: collapse;">
-                  <thead>
-                    <tr style="border-bottom: 2px solid #000;">
-                      <th style="padding: 0.5em; text-align: left; font-weight: 700;">Device</th>
-                      <th style="padding: 0.5em; text-align: right; font-weight: 700;">Views</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    ${devicesRes.devices.map(device => `
-                      <tr style="border-bottom: 1px solid #ccc;">
-                        <td style="padding: 0.5em; text-transform: capitalize;">${escapeHtml(device.type)}</td>
-                        <td style="padding: 0.5em; text-align: right;">${device.count}</td>
-                      </tr>
-                    `).join('')}
-                  </tbody>
-                </table>
+                <canvas id="deviceTypesChart" style="max-height: 300px;"></canvas>
               </div>
               ` : ''}
 
@@ -405,6 +408,9 @@
             if (pageviewsRes?.top_pages?.length > 0) {
               renderTopPagesChart(pageviewsRes.top_pages);
             }
+            if (devicesRes?.devices?.length > 0) {
+              renderDeviceTypesChart(devicesRes.devices);
+            }
             if (timeonpageRes?.by_page?.length > 0) {
               renderTimeOnPageChart(timeonpageRes.by_page);
             }
@@ -432,7 +438,7 @@
 
           // Reverse data for horizontal bar chart (top to bottom)
           const reversedData = [...data].reverse();
-          const labels = reversedData.map(page => page.path || '/');
+          const labels = reversedData.map(page => getPageName(page.path || '/'));
           const values = reversedData.map(page => page.count);
 
           window.topPagesChartInstance = new Chart(ctx, {
@@ -441,6 +447,89 @@
               labels: labels,
               datasets: [{
                 label: 'Page Views',
+                data: values,
+                backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                borderColor: '#000',
+                borderWidth: 1
+              }]
+            },
+            options: {
+              indexAxis: 'y', // Horizontal bar chart
+              responsive: true,
+              maintainAspectRatio: true,
+              plugins: {
+                legend: {
+                  display: false
+                },
+                tooltip: {
+                  backgroundColor: 'rgba(244, 232, 212, 0.95)',
+                  titleColor: '#000',
+                  bodyColor: '#000',
+                  borderColor: '#000',
+                  borderWidth: 1,
+                  padding: 12,
+                  callbacks: {
+                    label: function(context) {
+                      return 'Views: ' + context.parsed.x;
+                    }
+                  }
+                }
+              },
+              scales: {
+                x: {
+                  beginAtZero: true,
+                  ticks: {
+                    color: '#000',
+                    font: {
+                      family: "'EB Garamond', serif",
+                      size: 12
+                    }
+                  },
+                  grid: {
+                    color: 'rgba(0, 0, 0, 0.1)'
+                  }
+                },
+                y: {
+                  ticks: {
+                    color: '#000',
+                    font: {
+                      family: "'EB Garamond', serif",
+                      size: 12
+                    }
+                  },
+                  grid: {
+                    display: false
+                  }
+                }
+              }
+            }
+          });
+        }
+
+        // Render Device Types bar chart
+        function renderDeviceTypesChart(data) {
+          // Destroy existing chart if it exists
+          if (window.deviceTypesChartInstance) {
+            window.deviceTypesChartInstance.destroy();
+          }
+
+          const ctx = document.getElementById('deviceTypesChart');
+          if (!ctx) return;
+
+          // Reverse data for horizontal bar chart (top to bottom)
+          const reversedData = [...data].reverse();
+          const labels = reversedData.map(device => {
+            const type = device.type || 'desktop';
+            return type.charAt(0).toUpperCase() + type.slice(1);
+          });
+          const values = reversedData.map(device => device.count);
+
+          window.deviceTypesChartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+              labels: labels,
+              datasets: [{
+                label: 'Views',
                 data: values,
                 backgroundColor: 'rgba(0, 0, 0, 0.7)',
                 borderColor: '#000',
@@ -512,7 +601,7 @@
 
           // Reverse data for horizontal bar chart (top to bottom)
           const reversedData = [...data].reverse();
-          const labels = reversedData.map(page => page.path || '/');
+          const labels = reversedData.map(page => getPageName(page.path || '/'));
           const values = reversedData.map(page => Math.round(page.average));
 
           window.timeOnPageChartInstance = new Chart(ctx, {
