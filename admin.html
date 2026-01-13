@@ -245,6 +245,17 @@
           const metricsEl = document.getElementById("vercel-metrics");
           metricsEl.innerHTML = "<p>Loading analytics...</p>";
 
+          // Try to fetch data from the serverless function
+          let apiData = null;
+          try {
+            const apiResponse = await fetch("/api/analytics");
+            if (apiResponse.ok) {
+              apiData = await apiResponse.json();
+            }
+          } catch (err) {
+            console.log("API endpoint not available or error:", err);
+          }
+
           // Wait a moment for scripts to load, then check analytics status
           await new Promise((resolve) => setTimeout(resolve, 1000));
 
@@ -296,6 +307,55 @@
           try {
             let html = `
               <p><strong>Vercel Analytics Status</strong></p>
+              
+              ${apiData && apiData.success ? `
+              <div style="margin-top: 1em; padding: 1em; background-color: rgba(244, 232, 212, 0.3); border: 1px solid #000;">
+                <p style="margin-bottom: 0.5em; font-weight: 700;">📊 Project Information</p>
+                <p style="font-size: 0.9em; color: #666; margin-bottom: 0.5em;">
+                  <strong>Project:</strong> ${escapeHtml(apiData.project.name)}<br>
+                  <strong>Project ID:</strong> ${escapeHtml(apiData.project.id)}<br>
+                  <strong>Created:</strong> ${new Date(apiData.project.createdAt).toLocaleDateString()}
+                </p>
+                ${apiData.deployments && apiData.deployments.length > 0 ? `
+                  <p style="margin-top: 0.75em; margin-bottom: 0.5em; font-weight: 700;">Recent Deployments:</p>
+                  <ul style="font-size: 0.9em; color: #666; margin-left: 1.5em;">
+                    ${apiData.deployments.slice(0, 3).map(dep => `
+                      <li>
+                        <a href="https://${escapeHtml(dep.url)}" target="_blank" style="color: #000; text-decoration: underline;">
+                          ${escapeHtml(dep.url)}
+                        </a>
+                        - ${dep.state} (${new Date(dep.createdAt).toLocaleDateString()})
+                      </li>
+                    `).join('')}
+                  </ul>
+                ` : ''}
+                <p style="font-size: 0.85em; color: #666; margin-top: 0.75em; font-style: italic; padding-top: 0.75em; border-top: 1px solid #ccc;">
+                  ${apiData.analytics.message}
+                </p>
+                <p style="margin-top: 0.5em;">
+                  <a href="${escapeHtml(apiData.analytics.dashboardUrl)}" target="_blank" style="color: #000; text-decoration: underline; font-weight: 700;">
+                    Open Analytics Dashboard →
+                  </a>
+                </p>
+              </div>
+              ` : apiData && !apiData.success ? `
+              <div style="margin-top: 1em; padding: 1em; background-color: rgba(244, 232, 212, 0.3); border: 1px solid #000;">
+                <p style="margin-bottom: 0.5em; font-weight: 700; color: #d97706;">⚠ API Configuration Needed</p>
+                <p style="font-size: 0.9em; color: #666; margin-bottom: 0.5em;">
+                  ${escapeHtml(apiData.message)}
+                </p>
+                ${apiData.instructions ? `
+                  <p style="font-size: 0.9em; color: #666; margin-top: 0.5em; font-weight: 700;">Setup Instructions:</p>
+                  <ol style="font-size: 0.9em; color: #666; margin-left: 1.5em; margin-top: 0.5em;">
+                    ${apiData.instructions.map(inst => `<li>${escapeHtml(inst)}</li>`).join('')}
+                  </ol>
+                ` : ''}
+                <p style="font-size: 0.85em; color: #666; margin-top: 0.75em; font-style: italic;">
+                  ${escapeHtml(apiData.note || '')}
+                </p>
+              </div>
+              ` : ''}
+              
               <div style="margin-top: 1em; padding: 1em; background-color: rgba(244, 232, 212, 0.3); border: 1px solid #000;">
                 <p style="margin-bottom: 0.5em;">
                   <strong>Tracking Status:</strong> 
@@ -382,14 +442,20 @@
                 `
                 }
               </div>
-              <p style="margin-top: 1.5em;">
-                <strong>View Detailed Analytics:</strong>
-              </p>
-              <p style="margin-top: 0.5em;">
-                <a href="https://vercel.com/dashboard" target="_blank" style="color: #000; text-decoration: underline; font-weight: 700;">
-                  Open Vercel Dashboard →
-                </a>
-              </p>
+              <div style="margin-top: 1.5em; padding: 1em; background-color: rgba(244, 232, 212, 0.3); border: 1px solid #000;">
+                <p style="margin-bottom: 0.5em; font-weight: 700;">
+                  📊 View Site Metrics:
+                </p>
+                <p style="margin-top: 0.5em; margin-bottom: 0.5em;">
+                  <a href="https://vercel.com/dashboard/team_KggG73fuHIucvjQ85R6a3h17/project/watchmans-cry-site/analytics" target="_blank" style="color: #000; text-decoration: underline; font-weight: 700; font-size: 1.05em;">
+                    Open Analytics Dashboard →
+                  </a>
+                </p>
+                <p style="font-size: 0.85em; color: #666; margin-top: 0.75em; font-style: italic;">
+                  <strong>Note:</strong> Actual site metrics (page views, visitors, etc.) are displayed in the Vercel Dashboard. 
+                  This page only shows tracking status. Click the link above to view detailed analytics data.
+                </p>
+              </div>
               <p style="font-size: 0.9em; color: #666; margin-top: 1em;">
                 <strong>To enable Web Analytics:</strong>
               </p>
