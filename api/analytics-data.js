@@ -297,6 +297,49 @@ export default async function handler(req, res) {
         break;
       }
 
+      case 'hourly': {
+        // Get page views with timestamps
+        let query = supabase
+          .from('page_views')
+          .select('created_at');
+
+        if (dateFilter) {
+          query = query.gte('created_at', dateFilter);
+        }
+
+        const { data: views } = await query;
+
+        // Initialize hour buckets (0-23)
+        const hourCounts = {};
+        for (let i = 0; i < 24; i++) {
+          hourCounts[i] = 0;
+        }
+
+        // Group views by hour (using UTC time)
+        if (views) {
+          views.forEach(view => {
+            if (view.created_at) {
+              const date = new Date(view.created_at);
+              const hour = date.getUTCHours(); // Use UTC hour
+              hourCounts[hour] = (hourCounts[hour] || 0) + 1;
+            }
+          });
+        }
+
+        // Convert to array format for chart
+        const hourlyData = Object.entries(hourCounts)
+          .map(([hour, count]) => ({
+            hour: parseInt(hour),
+            count: count
+          }))
+          .sort((a, b) => a.hour - b.hour);
+
+        result = {
+          hourly: hourlyData
+        };
+        break;
+      }
+
       default:
         return res.status(400).json({ error: 'Invalid metric' });
     }

@@ -296,7 +296,7 @@
             const period = periodSelect ? periodSelect.value : '7d';
             const token = session.access_token;
 
-            const [pageviewsRes, visitorsRes, devicesRes, geographyRes, timeonpageRes] = await Promise.all([
+            const [pageviewsRes, visitorsRes, devicesRes, geographyRes, timeonpageRes, hourlyRes] = await Promise.all([
               fetch(`/api/analytics-data?metric=pageviews&period=${period}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
               }).then(r => r.ok ? r.json() : null).catch(() => null),
@@ -310,6 +310,9 @@
                 headers: { 'Authorization': `Bearer ${token}` }
               }).then(r => r.ok ? r.json() : null).catch(() => null),
               fetch(`/api/analytics-data?metric=timeonpage&period=${period}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+              }).then(r => r.ok ? r.json() : null).catch(() => null),
+              fetch(`/api/analytics-data?metric=hourly&period=${period}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
               }).then(r => r.ok ? r.json() : null).catch(() => null)
             ]);
@@ -393,6 +396,14 @@
               </div>
               ` : ''}
 
+              <!-- Page Views by Hour -->
+              ${hourlyRes?.hourly?.length > 0 ? `
+              <div style="margin-bottom: 2em; padding: 1em; background-color: rgba(244, 232, 212, 0.3); border: 1px solid #000;">
+                <h4 style="margin-top: 0; margin-bottom: 1em;">Page Views by Hour of Day (UTC)</h4>
+                <canvas id="hourlyViewsChart" style="max-height: 300px;"></canvas>
+              </div>
+              ` : ''}
+
               ${!pageviewsRes && !visitorsRes ? `
               <div style="padding: 1em; background-color: rgba(244, 232, 212, 0.3); border: 1px solid #000;">
                 <p style="font-size: 0.9em; color: #666;">
@@ -413,6 +424,9 @@
             }
             if (timeonpageRes?.by_page?.length > 0) {
               renderTimeOnPageChart(timeonpageRes.by_page);
+            }
+            if (hourlyRes?.hourly?.length > 0) {
+              renderHourlyViewsChart(hourlyRes.hourly);
             }
           } catch (err) {
             console.error("Error loading site metrics:", err);
@@ -665,6 +679,100 @@
                   },
                   grid: {
                     display: false
+                  }
+                }
+              }
+            }
+          });
+        }
+
+        // Render Hourly Views line chart
+        function renderHourlyViewsChart(data) {
+          // Destroy existing chart if it exists
+          if (window.hourlyViewsChartInstance) {
+            window.hourlyViewsChartInstance.destroy();
+          }
+
+          const ctx = document.getElementById('hourlyViewsChart');
+          if (!ctx) return;
+
+          // Format labels (0-23 hours)
+          const labels = data.map(item => {
+            const hour = item.hour;
+            // Format as 12-hour time (e.g., "12 AM", "1 PM")
+            const period = hour >= 12 ? 'PM' : 'AM';
+            const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+            return `${displayHour} ${period}`;
+          });
+          const values = data.map(item => item.count);
+
+          window.hourlyViewsChartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+              labels: labels,
+              datasets: [{
+                label: 'Page Views',
+                data: values,
+                borderColor: '#000',
+                backgroundColor: 'rgba(0, 0, 0, 0.1)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4, // Smooth curve
+                pointBackgroundColor: '#000',
+                pointBorderColor: '#f4e8d4',
+                pointBorderWidth: 2,
+                pointRadius: 4,
+                pointHoverRadius: 6
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: true,
+              plugins: {
+                legend: {
+                  display: false
+                },
+                tooltip: {
+                  backgroundColor: 'rgba(244, 232, 212, 0.95)',
+                  titleColor: '#000',
+                  bodyColor: '#000',
+                  borderColor: '#000',
+                  borderWidth: 1,
+                  padding: 12,
+                  callbacks: {
+                    label: function(context) {
+                      return 'Views: ' + context.parsed.y;
+                    }
+                  }
+                }
+              },
+              scales: {
+                x: {
+                  ticks: {
+                    color: '#000',
+                    font: {
+                      family: "'EB Garamond', serif",
+                      size: 11
+                    },
+                    maxRotation: 45,
+                    minRotation: 45
+                  },
+                  grid: {
+                    color: 'rgba(0, 0, 0, 0.1)'
+                  }
+                },
+                y: {
+                  beginAtZero: true,
+                  ticks: {
+                    color: '#000',
+                    font: {
+                      family: "'EB Garamond', serif",
+                      size: 12
+                    },
+                    stepSize: 1
+                  },
+                  grid: {
+                    color: 'rgba(0, 0, 0, 0.1)'
                   }
                 }
               }
