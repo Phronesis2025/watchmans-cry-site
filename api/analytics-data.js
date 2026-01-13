@@ -315,12 +315,19 @@ export default async function handler(req, res) {
           hourCounts[i] = 0;
         }
 
-        // Group views by hour (using UTC time)
+        // Group views by hour (converting UTC to CST)
+        // CST is UTC-6, CDT (daylight saving) is UTC-5
         if (views) {
           views.forEach(view => {
             if (view.created_at) {
               const date = new Date(view.created_at);
-              const hour = date.getUTCHours(); // Use UTC hour
+              
+              // Convert to CST/CDT timezone
+              // Format: 'America/Chicago' handles CST/CDT automatically
+              const cstDate = new Date(date.toLocaleString('en-US', { timeZone: 'America/Chicago' }));
+              
+              // Get hour in CST
+              const hour = cstDate.getHours();
               hourCounts[hour] = (hourCounts[hour] || 0) + 1;
             }
           });
