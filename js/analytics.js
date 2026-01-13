@@ -103,9 +103,23 @@
       },
       body: JSON.stringify(data),
       keepalive: true // Ensures request completes even if page closes
-    }).catch(function(err) {
-      // Silently fail - don't interrupt user experience
-      console.debug('Analytics tracking error:', err);
+    })
+    .then(function(response) {
+      // Log success/failure for debugging (only in development)
+      if (window.location.hostname === 'localhost' || window.location.hostname.includes('localhost')) {
+        if (response.ok || response.status === 204) {
+          console.log('✓ Analytics tracked:', data.page_path);
+        } else {
+          console.warn('⚠ Analytics tracking failed:', response.status, response.statusText);
+        }
+      }
+      return response;
+    })
+    .catch(function(err) {
+      // Log errors for debugging
+      if (window.location.hostname === 'localhost' || window.location.hostname.includes('localhost')) {
+        console.error('✗ Analytics tracking error:', err);
+      }
     });
   }
 

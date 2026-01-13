@@ -224,6 +224,16 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
+  // Log request for debugging (only in development)
+  if (process.env.NODE_ENV === 'development' || process.env.VERCEL_ENV === 'development') {
+    console.log('Tracking request received:', {
+      method: req.method,
+      path: req.url,
+      hasBody: !!req.body,
+      ip: getIPAddress(req)
+    });
+  }
+
   try {
     // Parse request body
     // Handle both JSON and Blob (from sendBeacon)
@@ -379,6 +389,14 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error('Tracking error:', error);
-    return res.status(500).json({ error: 'Internal server error' });
+    console.error('Error details:', {
+      message: error.message,
+      stack: error.stack,
+      body: req.body
+    });
+    return res.status(500).json({ 
+      error: 'Internal server error',
+      message: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 }

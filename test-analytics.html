@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Analytics Test Page - The Watchman's Cry</title>
+    <link rel="stylesheet" href="css/style.css" />
+    <style>
+      .test-section {
+        margin: 2em 0;
+        padding: 1em;
+        background-color: rgba(244, 232, 212, 0.3);
+        border: 1px solid #000;
+      }
+      .test-button {
+        padding: 0.75em 1.5em;
+        background-color: #000;
+        color: #f4e8d4;
+        border: none;
+        font-family: 'EB Garamond', serif;
+        font-size: 1em;
+        cursor: pointer;
+        margin: 0.5em 0.5em 0.5em 0;
+      }
+      .test-button:hover {
+        background-color: #333;
+      }
+      .log-output {
+        background-color: #000;
+        color: #0f0;
+        padding: 1em;
+        font-family: monospace;
+        font-size: 0.9em;
+        max-height: 400px;
+        overflow-y: auto;
+        margin-top: 1em;
+        border: 1px solid #000;
+      }
+      .log-entry {
+        margin: 0.25em 0;
+      }
+      .log-error {
+        color: #f00;
+      }
+      .log-success {
+        color: #0f0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>Analytics System Test Page</h1>
+        <p class="tagline">Use this page to test and debug the analytics tracking system</p>
+        <img src="images/divider.png" alt="divider" class="divider" />
+      </header>
+
+      <section>
+        <div class="test-section">
+          <h2>Test Tracking</h2>
+          <p>Click the buttons below to test different aspects of the analytics system.</p>
+          
+          <button class="test-button" onclick="testPageView()">Test Page View</button>
+          <button class="test-button" onclick="testTimeUpdate()">Test Time Update</button>
+          <button class="test-button" onclick="checkSessionId()">Check Session ID</button>
+          <button class="test-button" onclick="testAPIEndpoint()">Test API Endpoint</button>
+          <button class="test-button" onclick="clearLogs()">Clear Logs</button>
+        </div>
+
+        <div class="test-section">
+          <h2>Current Status</h2>
+          <div id="status-info">
+            <p><strong>Session ID:</strong> <span id="session-id">Loading...</span></p>
+            <p><strong>Do Not Track:</strong> <span id="dnt-status">Checking...</span></p>
+            <p><strong>Analytics Script Loaded:</strong> <span id="script-status">Checking...</span></p>
+            <p><strong>Time on Page:</strong> <span id="time-on-page">0</span> seconds</p>
+          </div>
+        </div>
+
+        <div class="test-section">
+          <h2>Test Logs</h2>
+          <div id="log-output" class="log-output">
+            <div class="log-entry">Analytics test page loaded. Ready for testing.</div>
+          </div>
+        </div>
+
+        <div class="test-section">
+          <h2>Instructions</h2>
+          <ol>
+            <li>Open Developer Tools (F12) → Network tab</li>
+            <li>Click "Test Page View" - should see POST to /api/track</li>
+            <li>Check the logs above for success/error messages</li>
+            <li>Wait 30+ seconds, then click "Test Time Update"</li>
+            <li>Check Supabase dashboard to verify data is being stored</li>
+            <li>Go to /admin.html to view aggregated metrics</li>
+          </ol>
+        </div>
+      </section>
+    </div>
+
+    <!-- Load analytics script -->
+    <script src="js/analytics.js"></script>
+    
+    <script>
+      // Test functions
+      let logCount = 0;
+      let pageStartTime = Date.now();
+
+      function log(message, type = 'info') {
+        const logOutput = document.getElementById('log-output');
+        const entry = document.createElement('div');
+        entry.className = 'log-entry ' + (type === 'error' ? 'log-error' : type === 'success' ? 'log-success' : '');
+        entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+        logOutput.appendChild(entry);
+        logOutput.scrollTop = logOutput.scrollHeight;
+        logCount++;
+      }
+
+      function clearLogs() {
+        document.getElementById('log-output').innerHTML = '<div class="log-entry">Logs cleared.</div>';
+        logCount = 0;
+      }
+
+      function checkSessionId() {
+        const sessionId = sessionStorage.getItem('watchmans_cry_session_id');
+        if (sessionId) {
+          document.getElementById('session-id').textContent = sessionId;
+          log('Session ID found: ' + sessionId, 'success');
+        } else {
+          document.getElementById('session-id').textContent = 'Not found';
+          log('No session ID found. Analytics script may not have run yet.', 'error');
+        }
+      }
+
+      function testPageView() {
+        log('Testing page view tracking...', 'info');
+        
+        const sessionId = sessionStorage.getItem('watchmans_cry_session_id') || 'test_' + Date.now();
+        const data = {
+          page_path: '/test-analytics.html',
+          page_title: 'Analytics Test Page',
+          referrer: document.referrer || '',
+          user_agent: navigator.userAgent,
+          session_id: sessionId,
+          time_on_page: null
+        };
+
+        fetch('/api/track', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(data),
+          keepalive: true
+        })
+        .then(response => {
+          if (response.ok || response.status === 204) {
+            log('✓ Page view tracked successfully (204)', 'success');
+          } else {
+            log('✗ Tracking failed: ' + response.status + ' ' + response.statusText, 'error');
+            return response.text().then(text => {
+              log('Response: ' + text, 'error');
+            });
+          }
+        })
+        .catch(error => {
+          log('✗ Tracking error: ' + error.message, 'error');
+        });
+      }
+
+      function testTimeUpdate() {
+        const timeSpent = Math.floor((Date.now() - pageStartTime) / 1000);
+        log('Testing time update (time on page: ' + timeSpent + 's)...', 'info');
+        
+        const sessionId = sessionStorage.getItem('watchmans_cry_session_id') || 'test_' + Date.now();
+        const data = {
+          page_path: '/test-analytics.html',
+          session_id: sessionId,
+          time_on_page: timeSpent,
+          is_update: true
+        };
+
+        fetch('/api/track', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(data),
+          keepalive: true
+        })
+        .then(response => {
+          if (response.ok || response.status === 204) {
+            log('✓ Time update tracked successfully', 'success');
+          } else {
+            log('✗ Time update failed: ' + response.status, 'error');
+          }
+        })
+        .catch(error => {
+          log('✗ Time update error: ' + error.message, 'error');
+        });
+      }
+
+      function testAPIEndpoint() {
+        log('Testing API endpoint availability...', 'info');
+        
+        fetch('/api/track', {
+          method: 'OPTIONS'
+        })
+        .then(response => {
+          if (response.ok) {
+            log('✓ API endpoint is accessible (CORS preflight OK)', 'success');
+          } else {
+            log('⚠ API endpoint returned: ' + response.status, 'error');
+          }
+        })
+        .catch(error => {
+          log('✗ Cannot reach API endpoint: ' + error.message, 'error');
+          log('This might mean the serverless function is not deployed yet.', 'error');
+        });
+      }
+
+      // Update status on load
+      window.addEventListener('DOMContentLoaded', function() {
+        // Check Do Not Track
+        const dnt = navigator.doNotTrack === '1' || navigator.doNotTrack === 'yes';
+        document.getElementById('dnt-status').textContent = dnt ? 'Enabled (tracking disabled)' : 'Disabled (tracking enabled)';
+        if (dnt) {
+          document.getElementById('dnt-status').style.color = '#d97706';
+          log('⚠ Do Not Track is enabled. Analytics will not work.', 'error');
+        }
+
+        // Check if analytics script loaded
+        setTimeout(() => {
+          const sessionId = sessionStorage.getItem('watchmans_cry_session_id');
+          if (sessionId) {
+            document.getElementById('script-status').textContent = 'Yes';
+            document.getElementById('script-status').style.color = 'darkgreen';
+            checkSessionId();
+          } else {
+            document.getElementById('script-status').textContent = 'No (check console for errors)';
+            document.getElementById('script-status').style.color = '#d97706';
+            log('⚠ Analytics script may not have loaded. Check browser console.', 'error');
+          }
+        }, 1000);
+
+        // Update time on page
+        setInterval(() => {
+          const timeSpent = Math.floor((Date.now() - pageStartTime) / 1000);
+          document.getElementById('time-on-page').textContent = timeSpent;
+        }, 1000);
+      });
+    </script>
+  </body>
+</html>
