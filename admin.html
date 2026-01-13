@@ -7,6 +7,8 @@
     <link rel="stylesheet" href="css/style.css" />
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/supabase-client.js"></script>
+    <!-- Chart.js for bar charts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   </head>
   <body>
     <div class="container">
@@ -384,22 +386,7 @@
               ${timeonpageRes?.by_page?.length > 0 ? `
               <div style="margin-bottom: 2em; padding: 1em; background-color: rgba(244, 232, 212, 0.3); border: 1px solid #000;">
                 <h4 style="margin-top: 0; margin-bottom: 1em;">Average Time on Page</h4>
-                <table style="width: 100%; border-collapse: collapse;">
-                  <thead>
-                    <tr style="border-bottom: 2px solid #000;">
-                      <th style="padding: 0.5em; text-align: left; font-weight: 700;">Page</th>
-                      <th style="padding: 0.5em; text-align: right; font-weight: 700;">Avg. Time (seconds)</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    ${timeonpageRes.by_page.map(page => `
-                      <tr style="border-bottom: 1px solid #ccc;">
-                        <td style="padding: 0.5em;">${escapeHtml(page.path)}</td>
-                        <td style="padding: 0.5em; text-align: right;">${page.average}s</td>
-                      </tr>
-                    `).join('')}
-                  </tbody>
-                </table>
+                <canvas id="timeOnPageChart" style="max-height: 400px;"></canvas>
               </div>
               ` : ''}
 
@@ -413,6 +400,14 @@
             `;
 
             metricsEl.innerHTML = html;
+            
+            // Render charts after HTML is inserted
+            if (pageviewsRes?.top_pages?.length > 0) {
+              renderTopPagesChart(pageviewsRes.top_pages);
+            }
+            if (timeonpageRes?.by_page?.length > 0) {
+              renderTimeOnPageChart(timeonpageRes.by_page);
+            }
           } catch (err) {
             console.error("Error loading site metrics:", err);
             metricsEl.innerHTML = `
@@ -423,6 +418,169 @@
               </p>
             `;
           }
+        }
+
+        // Render Top Pages bar chart
+        function renderTopPagesChart(data) {
+          // Destroy existing chart if it exists
+          if (window.topPagesChartInstance) {
+            window.topPagesChartInstance.destroy();
+          }
+
+          const ctx = document.getElementById('topPagesChart');
+          if (!ctx) return;
+
+          // Reverse data for horizontal bar chart (top to bottom)
+          const reversedData = [...data].reverse();
+          const labels = reversedData.map(page => page.path || '/');
+          const values = reversedData.map(page => page.count);
+
+          window.topPagesChartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+              labels: labels,
+              datasets: [{
+                label: 'Page Views',
+                data: values,
+                backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                borderColor: '#000',
+                borderWidth: 1
+              }]
+            },
+            options: {
+              indexAxis: 'y', // Horizontal bar chart
+              responsive: true,
+              maintainAspectRatio: true,
+              plugins: {
+                legend: {
+                  display: false
+                },
+                tooltip: {
+                  backgroundColor: 'rgba(244, 232, 212, 0.95)',
+                  titleColor: '#000',
+                  bodyColor: '#000',
+                  borderColor: '#000',
+                  borderWidth: 1,
+                  padding: 12,
+                  callbacks: {
+                    label: function(context) {
+                      return 'Views: ' + context.parsed.x;
+                    }
+                  }
+                }
+              },
+              scales: {
+                x: {
+                  beginAtZero: true,
+                  ticks: {
+                    color: '#000',
+                    font: {
+                      family: "'EB Garamond', serif",
+                      size: 12
+                    }
+                  },
+                  grid: {
+                    color: 'rgba(0, 0, 0, 0.1)'
+                  }
+                },
+                y: {
+                  ticks: {
+                    color: '#000',
+                    font: {
+                      family: "'EB Garamond', serif",
+                      size: 12
+                    }
+                  },
+                  grid: {
+                    display: false
+                  }
+                }
+              }
+            }
+          });
+        }
+
+        // Render Time on Page bar chart
+        function renderTimeOnPageChart(data) {
+          // Destroy existing chart if it exists
+          if (window.timeOnPageChartInstance) {
+            window.timeOnPageChartInstance.destroy();
+          }
+
+          const ctx = document.getElementById('timeOnPageChart');
+          if (!ctx) return;
+
+          // Reverse data for horizontal bar chart (top to bottom)
+          const reversedData = [...data].reverse();
+          const labels = reversedData.map(page => page.path || '/');
+          const values = reversedData.map(page => Math.round(page.average));
+
+          window.timeOnPageChartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+              labels: labels,
+              datasets: [{
+                label: 'Average Time (seconds)',
+                data: values,
+                backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                borderColor: '#000',
+                borderWidth: 1
+              }]
+            },
+            options: {
+              indexAxis: 'y', // Horizontal bar chart
+              responsive: true,
+              maintainAspectRatio: true,
+              plugins: {
+                legend: {
+                  display: false
+                },
+                tooltip: {
+                  backgroundColor: 'rgba(244, 232, 212, 0.95)',
+                  titleColor: '#000',
+                  bodyColor: '#000',
+                  borderColor: '#000',
+                  borderWidth: 1,
+                  padding: 12,
+                  callbacks: {
+                    label: function(context) {
+                      return 'Avg. Time: ' + context.parsed.x + 's';
+                    }
+                  }
+                }
+              },
+              scales: {
+                x: {
+                  beginAtZero: true,
+                  ticks: {
+                    color: '#000',
+                    font: {
+                      family: "'EB Garamond', serif",
+                      size: 12
+                    },
+                    callback: function(value) {
+                      return value + 's';
+                    }
+                  },
+                  grid: {
+                    color: 'rgba(0, 0, 0, 0.1)'
+                  }
+                },
+                y: {
+                  ticks: {
+                    color: '#000',
+                    font: {
+                      family: "'EB Garamond', serif",
+                      size: 12
+                    }
+                  },
+                  grid: {
+                    display: false
+                  }
+                }
+              }
+            }
+          });
         }
       </script>
     </div>
