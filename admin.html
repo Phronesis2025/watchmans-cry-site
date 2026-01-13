@@ -82,8 +82,8 @@
         </div>
 
         <h3>Site Metrics</h3>
-        <div id="vercel-metrics" style="margin-bottom: 2em">
-          <p>Loading Vercel Analytics...</p>
+        <div id="site-metrics" style="margin-bottom: 2em">
+          <p>Loading site metrics...</p>
         </div>
       </div>
 
@@ -237,261 +237,189 @@
             `;
           }
 
-          // Load Vercel Analytics
-          loadVercelMetrics();
+          // Load Site Metrics (Supabase Analytics)
+          loadSiteMetrics();
         }
 
-        async function loadVercelMetrics() {
-          const metricsEl = document.getElementById("vercel-metrics");
-          metricsEl.innerHTML = "<p>Loading analytics...</p>";
+        async function loadSiteMetrics() {
+          const metricsEl = document.getElementById("site-metrics");
+          metricsEl.innerHTML = "<p>Loading site metrics...</p>";
 
-          // Try to fetch data from the serverless function
-          let apiData = null;
           try {
-            const apiResponse = await fetch("/api/analytics");
-            if (apiResponse.ok) {
-              apiData = await apiResponse.json();
+            // Get current session token
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session) {
+              metricsEl.innerHTML = `
+                <p><strong>Site Analytics</strong></p>
+                <p style="color: darkred;">Please sign in to view analytics.</p>
+              `;
+              return;
             }
-          } catch (err) {
-            console.log("API endpoint not available or error:", err);
-          }
 
-          // Wait a moment for scripts to load, then check analytics status
-          await new Promise((resolve) => setTimeout(resolve, 1000));
+            // Get selected period from dropdown or default to 7d
+            const periodSelect = document.getElementById('analytics-period');
+            const period = periodSelect ? periodSelect.value : '7d';
+            const token = session.access_token;
 
-          // Check if analytics script is loaded - check both window.va and window.vaq
-          const vaExists = typeof window.va !== "undefined";
-          const vaqExists = typeof window.vaq !== "undefined";
-          const analyticsActive = vaExists || vaqExists;
+            const [pageviewsRes, visitorsRes, devicesRes, geographyRes, timeonpageRes] = await Promise.all([
+              fetch(`/api/analytics-data?metric=pageviews&period=${period}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+              }).then(r => r.ok ? r.json() : null).catch(() => null),
+              fetch(`/api/analytics-data?metric=visitors&period=${period}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+              }).then(r => r.ok ? r.json() : null).catch(() => null),
+              fetch(`/api/analytics-data?metric=devices&period=${period}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+              }).then(r => r.ok ? r.json() : null).catch(() => null),
+              fetch(`/api/analytics-data?metric=geography&period=${period}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+              }).then(r => r.ok ? r.json() : null).catch(() => null),
+              fetch(`/api/analytics-data?metric=timeonpage&period=${period}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+              }).then(r => r.ok ? r.json() : null).catch(() => null)
+            ]);
 
-          // Check if we're on a Vercel domain (for informational purposes)
-          // Note: Custom domains also work with Vercel Analytics
-          const isVercelDomain =
-            window.location.hostname.includes("vercel.app") ||
-            window.location.hostname.includes("vercel.sh");
-          const isCustomDomain = !isVercelDomain;
-
-          // Check if the analytics script file exists by trying to fetch it
-          // This is the definitive check - if script exists, analytics is available
-          let scriptExists = false;
-          let scriptError = null;
-          try {
-            const response = await fetch("/_vercel/insights/script.js", {
-              method: "HEAD",
-            });
-            scriptExists = response.ok;
-            if (!response.ok) {
-              scriptError = `Script returned status ${response.status}`;
-            }
-          } catch (err) {
-            scriptError = err.message;
-          }
-
-          // If script exists but analytics isn't active, it might just need time to load
-          // or the script loaded but hasn't initialized yet
-          const likelyActive = scriptExists || analyticsActive;
-
-          // Log diagnostic info to console
-          console.log("Analytics Diagnostics:", {
-            vaExists,
-            vaqExists,
-            analyticsActive,
-            isVercelDomain,
-            isCustomDomain,
-            scriptExists,
-            scriptError,
-            likelyActive,
-            hostname: window.location.hostname,
-          });
-
-          try {
             let html = `
-              <p><strong>Vercel Analytics Status</strong></p>
-              
-              ${apiData && apiData.success ? `
-              <div style="margin-top: 1em; padding: 1em; background-color: rgba(244, 232, 212, 0.3); border: 1px solid #000;">
-                <p style="margin-bottom: 0.5em; font-weight: 700;">📊 Project Information</p>
-                <p style="font-size: 0.9em; color: #666; margin-bottom: 0.5em;">
-                  <strong>Project:</strong> ${escapeHtml(apiData.project.name)}<br>
-                  <strong>Project ID:</strong> ${escapeHtml(apiData.project.id)}<br>
-                  <strong>Created:</strong> ${new Date(apiData.project.createdAt).toLocaleDateString()}
-                </p>
-                ${apiData.deployments && apiData.deployments.length > 0 ? `
-                  <p style="margin-top: 0.75em; margin-bottom: 0.5em; font-weight: 700;">Recent Deployments:</p>
-                  <ul style="font-size: 0.9em; color: #666; margin-left: 1.5em;">
-                    ${apiData.deployments.slice(0, 3).map(dep => `
-                      <li>
-                        <a href="https://${escapeHtml(dep.url)}" target="_blank" style="color: #000; text-decoration: underline;">
-                          ${escapeHtml(dep.url)}
-                        </a>
-                        - ${dep.state} (${new Date(dep.createdAt).toLocaleDateString()})
-                      </li>
-                    `).join('')}
-                  </ul>
-                ` : ''}
-                <p style="font-size: 0.85em; color: #666; margin-top: 0.75em; font-style: italic; padding-top: 0.75em; border-top: 1px solid #ccc;">
-                  ${apiData.analytics.message}
-                </p>
-                <p style="margin-top: 0.5em;">
-                  <a href="${escapeHtml(apiData.analytics.dashboardUrl)}" target="_blank" style="color: #000; text-decoration: underline; font-weight: 700;">
-                    Open Analytics Dashboard →
-                  </a>
-                </p>
+              <p><strong>Site Analytics</strong></p>
+              <div style="margin-bottom: 1em;">
+                <label style="font-weight: 700; margin-right: 0.5em;">Time Period:</label>
+                <select id="analytics-period" onchange="loadSiteMetrics()" style="padding: 0.25em; border: 1px solid #000; font-family: 'EB Garamond', serif;">
+                  <option value="7d" ${period === '7d' ? 'selected' : ''}>Last 7 days</option>
+                  <option value="30d" ${period === '30d' ? 'selected' : ''}>Last 30 days</option>
+                  <option value="all" ${period === 'all' ? 'selected' : ''}>All time</option>
+                </select>
+                <button onclick="loadSiteMetrics()" style="margin-left: 0.5em; padding: 0.25em 0.75em; background-color: #000; color: #f4e8d4; border: none; font-family: 'EB Garamond', serif; cursor: pointer;">Refresh</button>
               </div>
-              ` : apiData && !apiData.success ? `
-              <div style="margin-top: 1em; padding: 1em; background-color: rgba(244, 232, 212, 0.3); border: 1px solid #000;">
-                <p style="margin-bottom: 0.5em; font-weight: 700; color: #d97706;">⚠ API Configuration Needed</p>
-                <p style="font-size: 0.9em; color: #666; margin-bottom: 0.5em;">
-                  ${escapeHtml(apiData.message)}
-                </p>
-                ${apiData.instructions ? `
-                  <p style="font-size: 0.9em; color: #666; margin-top: 0.5em; font-weight: 700;">Setup Instructions:</p>
-                  <ol style="font-size: 0.9em; color: #666; margin-left: 1.5em; margin-top: 0.5em;">
-                    ${apiData.instructions.map(inst => `<li>${escapeHtml(inst)}</li>`).join('')}
-                  </ol>
-                ` : ''}
-                <p style="font-size: 0.85em; color: #666; margin-top: 0.75em; font-style: italic;">
-                  ${escapeHtml(apiData.note || '')}
+              
+              <!-- Overview Cards -->
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1em; margin-bottom: 2em;">
+                <div style="padding: 1em; background-color: rgba(244, 232, 212, 0.3); border: 1px solid #000; text-align: center;">
+                  <p style="font-size: 0.9em; color: #666; margin-bottom: 0.5em;">Total Page Views</p>
+                  <p style="font-size: 2em; font-weight: 700; margin: 0;">${pageviewsRes?.total || 0}</p>
+                </div>
+                <div style="padding: 1em; background-color: rgba(244, 232, 212, 0.3); border: 1px solid #000; text-align: center;">
+                  <p style="font-size: 0.9em; color: #666; margin-bottom: 0.5em;">Unique Visitors</p>
+                  <p style="font-size: 2em; font-weight: 700; margin: 0;">${visitorsRes?.unique_visitors || 0}</p>
+                </div>
+                <div style="padding: 1em; background-color: rgba(244, 232, 212, 0.3); border: 1px solid #000; text-align: center;">
+                  <p style="font-size: 0.9em; color: #666; margin-bottom: 0.5em;">New Visitors</p>
+                  <p style="font-size: 2em; font-weight: 700; margin: 0;">${visitorsRes?.new_visitors || 0}</p>
+                </div>
+                <div style="padding: 1em; background-color: rgba(244, 232, 212, 0.3); border: 1px solid #000; text-align: center;">
+                  <p style="font-size: 0.9em; color: #666; margin-bottom: 0.5em;">Avg. Time on Page</p>
+                  <p style="font-size: 2em; font-weight: 700; margin: 0;">${timeonpageRes?.overall_average || 0}s</p>
+                </div>
+              </div>
+
+              <!-- Top Pages -->
+              ${pageviewsRes?.top_pages?.length > 0 ? `
+              <div style="margin-bottom: 2em; padding: 1em; background-color: rgba(244, 232, 212, 0.3); border: 1px solid #000;">
+                <h4 style="margin-top: 0; margin-bottom: 1em;">Top Pages</h4>
+                <table style="width: 100%; border-collapse: collapse;">
+                  <thead>
+                    <tr style="border-bottom: 2px solid #000;">
+                      <th style="padding: 0.5em; text-align: left; font-weight: 700;">Page</th>
+                      <th style="padding: 0.5em; text-align: right; font-weight: 700;">Views</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${pageviewsRes.top_pages.map((page, idx) => `
+                      <tr style="border-bottom: 1px solid #ccc;">
+                        <td style="padding: 0.5em;">${escapeHtml(page.path)}</td>
+                        <td style="padding: 0.5em; text-align: right;">${page.count}</td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              </div>
+              ` : ''}
+
+              <!-- Device Types -->
+              ${devicesRes?.devices?.length > 0 ? `
+              <div style="margin-bottom: 2em; padding: 1em; background-color: rgba(244, 232, 212, 0.3); border: 1px solid #000;">
+                <h4 style="margin-top: 0; margin-bottom: 1em;">Device Types</h4>
+                <table style="width: 100%; border-collapse: collapse;">
+                  <thead>
+                    <tr style="border-bottom: 2px solid #000;">
+                      <th style="padding: 0.5em; text-align: left; font-weight: 700;">Device</th>
+                      <th style="padding: 0.5em; text-align: right; font-weight: 700;">Views</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${devicesRes.devices.map(device => `
+                      <tr style="border-bottom: 1px solid #ccc;">
+                        <td style="padding: 0.5em; text-transform: capitalize;">${escapeHtml(device.type)}</td>
+                        <td style="padding: 0.5em; text-align: right;">${device.count}</td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              </div>
+              ` : ''}
+
+              <!-- Geographic Data -->
+              ${geographyRes?.countries?.length > 0 ? `
+              <div style="margin-bottom: 2em; padding: 1em; background-color: rgba(244, 232, 212, 0.3); border: 1px solid #000;">
+                <h4 style="margin-top: 0; margin-bottom: 1em;">Top Countries</h4>
+                <table style="width: 100%; border-collapse: collapse;">
+                  <thead>
+                    <tr style="border-bottom: 2px solid #000;">
+                      <th style="padding: 0.5em; text-align: left; font-weight: 700;">Country</th>
+                      <th style="padding: 0.5em; text-align: right; font-weight: 700;">Views</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${geographyRes.countries.map(country => `
+                      <tr style="border-bottom: 1px solid #ccc;">
+                        <td style="padding: 0.5em;">${escapeHtml(country.country)}</td>
+                        <td style="padding: 0.5em; text-align: right;">${country.count}</td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              </div>
+              ` : ''}
+
+              <!-- Time on Page by Page -->
+              ${timeonpageRes?.by_page?.length > 0 ? `
+              <div style="margin-bottom: 2em; padding: 1em; background-color: rgba(244, 232, 212, 0.3); border: 1px solid #000;">
+                <h4 style="margin-top: 0; margin-bottom: 1em;">Average Time on Page</h4>
+                <table style="width: 100%; border-collapse: collapse;">
+                  <thead>
+                    <tr style="border-bottom: 2px solid #000;">
+                      <th style="padding: 0.5em; text-align: left; font-weight: 700;">Page</th>
+                      <th style="padding: 0.5em; text-align: right; font-weight: 700;">Avg. Time (seconds)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${timeonpageRes.by_page.map(page => `
+                      <tr style="border-bottom: 1px solid #ccc;">
+                        <td style="padding: 0.5em;">${escapeHtml(page.path)}</td>
+                        <td style="padding: 0.5em; text-align: right;">${page.average}s</td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              </div>
+              ` : ''}
+
+              ${!pageviewsRes && !visitorsRes ? `
+              <div style="padding: 1em; background-color: rgba(244, 232, 212, 0.3); border: 1px solid #000;">
+                <p style="font-size: 0.9em; color: #666;">
+                  No analytics data available yet. Data will appear here once visitors start using the site.
                 </p>
               </div>
               ` : ''}
-              
-              <div style="margin-top: 1em; padding: 1em; background-color: rgba(244, 232, 212, 0.3); border: 1px solid #000;">
-                <p style="margin-bottom: 0.5em;">
-                  <strong>Tracking Status:</strong> 
-                  <span style="color: ${likelyActive ? "darkgreen" : "#666"};">
-                    ${
-                      analyticsActive
-                        ? "✓ Active"
-                        : scriptExists
-                        ? "⚠ Script available (may need refresh)"
-                        : "Not detected"
-                    }
-                  </span>
-                </p>
-                ${
-                  analyticsActive
-                    ? `
-                  <p style="font-size: 0.9em; color: #666; margin-top: 0.5em;">
-                    Page views are being tracked automatically. Analytics data is collected server-side by Vercel.
-                  </p>
-                `
-                    : scriptExists
-                    ? `
-                  <p style="font-size: 0.9em; color: #666; margin-top: 0.5em;">
-                    The analytics script is available, but hasn't initialized yet. This is normal and tracking should start working shortly.
-                    ${
-                      isCustomDomain
-                        ? " Custom domains work with Vercel Analytics."
-                        : ""
-                    }
-                  </p>
-                  <p style="font-size: 0.85em; color: #666; margin-top: 0.5em; font-style: italic;">
-                    Try refreshing the page in a few moments to see if status updates to "Active".
-                  </p>
-                `
-                    : `
-                  <p style="font-size: 0.9em; color: #666; margin-top: 0.5em;">
-                    <strong>Analytics script not available.</strong> This means:
-                  </p>
-                  <ul style="font-size: 0.9em; color: #666; margin-left: 1.5em; margin-top: 0.5em;">
-                    <li>Web Analytics needs to be enabled in your Vercel project settings</li>
-                    <li>Go to Vercel Dashboard → Your Project → Settings → Analytics</li>
-                    <li>Enable "Web Analytics" and wait 2-3 minutes for it to activate</li>
-                  </ul>
-                  ${
-                    isCustomDomain
-                      ? `
-                    <p style="font-size: 0.9em; color: #666; margin-top: 0.5em; padding: 0.5em; background-color: rgba(244, 232, 212, 0.5); border-left: 3px solid #000;">
-                      <strong>Note:</strong> You're using a custom domain (${escapeHtml(
-                        window.location.hostname
-                      )}). 
-                      Vercel Analytics works with custom domains once enabled in project settings.
-                    </p>
-                  `
-                      : ""
-                  }
-                  <div style="margin-top: 1em; padding: 0.75em; background-color: rgba(0,0,0,0.05); border: 1px solid #ccc; font-size: 0.85em;">
-                    <p style="margin-bottom: 0.5em; font-weight: 700;">Diagnostic Info:</p>
-                    <ul style="margin-left: 1.5em; color: #666;">
-                      <li>Script file exists: ${
-                        scriptExists ? "✓ Yes" : "✗ No"
-                      }</li>
-                      <li>Domain type: ${
-                        isCustomDomain ? "Custom domain" : "Vercel domain"
-                      }</li>
-                      <li>Hostname: ${escapeHtml(window.location.hostname)}</li>
-                      ${
-                        scriptError
-                          ? `<li style="color: darkred;">Error: ${escapeHtml(
-                              scriptError
-                            )}</li>`
-                          : ""
-                      }
-                    </ul>
-                    ${
-                      !scriptExists
-                        ? `
-                      <p style="color: darkred; margin-top: 0.5em; font-weight: 700;">
-                        The analytics script file is not available. Enable Web Analytics in Vercel project settings.
-                      </p>
-                    `
-                        : ""
-                    }
-                  </div>
-                `
-                }
-              </div>
-              <div style="margin-top: 1.5em; padding: 1em; background-color: rgba(244, 232, 212, 0.3); border: 1px solid #000;">
-                <p style="margin-bottom: 0.5em; font-weight: 700;">
-                  📊 View Site Metrics:
-                </p>
-                <p style="margin-top: 0.5em; margin-bottom: 0.5em;">
-                  <a href="https://vercel.com/dashboard/team_KggG73fuHIucvjQ85R6a3h17/project/watchmans-cry-site/analytics" target="_blank" style="color: #000; text-decoration: underline; font-weight: 700; font-size: 1.05em;">
-                    Open Analytics Dashboard →
-                  </a>
-                </p>
-                <p style="font-size: 0.85em; color: #666; margin-top: 0.75em; font-style: italic;">
-                  <strong>Note:</strong> Actual site metrics (page views, visitors, etc.) are displayed in the Vercel Dashboard. 
-                  This page only shows tracking status. Click the link above to view detailed analytics data.
-                </p>
-              </div>
-              <p style="font-size: 0.9em; color: #666; margin-top: 1em;">
-                <strong>To enable Web Analytics:</strong>
-              </p>
-              <ol style="font-size: 0.9em; color: #666; margin-left: 1.5em; margin-top: 0.5em;">
-                <li>Go to your Vercel Dashboard</li>
-                <li>Select your project</li>
-                <li>Go to Settings → Analytics</li>
-                <li>Enable "Web Analytics"</li>
-                <li>Wait a few minutes for it to activate</li>
-              </ol>
-              <p style="font-size: 0.9em; color: #666; margin-top: 1em;">
-                In your Vercel Dashboard, you can view:
-              </p>
-              <ul style="font-size: 0.9em; color: #666; margin-left: 1.5em; margin-top: 0.5em;">
-                <li>Page views and unique visitors</li>
-                <li>Top pages and referrers</li>
-                <li>Geographic data</li>
-                <li>Device and browser statistics</li>
-                <li>Performance metrics</li>
-              </ul>
-              <p style="font-size: 0.85em; color: #666; margin-top: 1em; font-style: italic; padding-top: 1em; border-top: 1px solid #ccc;">
-                <strong>Note:</strong> Analytics data appears in your project's Analytics tab after enabling Web Analytics. 
-                Real-time metrics may take a few minutes to appear after enabling.
-              </p>
             `;
 
             metricsEl.innerHTML = html;
           } catch (err) {
-            console.error("Error loading analytics info:", err);
+            console.error("Error loading site metrics:", err);
             metricsEl.innerHTML = `
-              <p><strong>Vercel Analytics</strong></p>
+              <p><strong>Site Analytics</strong></p>
               <p style="color: darkred;">Error loading analytics information. Check console for details.</p>
-              <p style="margin-top: 1em;">
-                <a href="https://vercel.com/dashboard" target="_blank" style="color: #000; text-decoration: underline; font-weight: 700;">
-                  Open Vercel Dashboard →
-                </a>
+              <p style="font-size: 0.85em; color: #666; margin-top: 0.5em;">
+                Error: ${escapeHtml(err.message || 'Unknown error')}
               </p>
             `;
           }
