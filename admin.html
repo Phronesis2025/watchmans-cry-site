@@ -349,46 +349,15 @@
                 </div>
               </div>
 
-              <!-- Top Pages -->
-              ${pageviewsRes?.top_pages?.length > 0 ? `
+              <!-- Page Views by Hour (1) -->
+              ${hourlyRes?.hourly?.length > 0 ? `
               <div style="margin-bottom: 2em; padding: 1em; background-color: rgba(244, 232, 212, 0.3); border: 1px solid #000;">
-                <h4 style="margin-top: 0; margin-bottom: 1em;">Top Pages</h4>
-                <canvas id="topPagesChart" style="max-height: 400px;"></canvas>
+                <h4 style="margin-top: 0; margin-bottom: 1em;">Page Views by Hour of Day (CST)</h4>
+                <canvas id="hourlyViewsChart" style="max-height: 300px;"></canvas>
               </div>
               ` : ''}
 
-              <!-- Device Types -->
-              ${devicesRes?.devices?.length > 0 ? `
-              <div style="margin-bottom: 2em; padding: 1em; background-color: rgba(244, 232, 212, 0.3); border: 1px solid #000;">
-                <h4 style="margin-top: 0; margin-bottom: 1em;">Device Types</h4>
-                <canvas id="deviceTypesChart" style="max-height: 300px;"></canvas>
-              </div>
-              ` : ''}
-
-              <!-- Geographic Data -->
-              ${geographyRes?.countries?.length > 0 ? `
-              <div style="margin-bottom: 2em; padding: 1em; background-color: rgba(244, 232, 212, 0.3); border: 1px solid #000;">
-                <h4 style="margin-top: 0; margin-bottom: 1em;">Top Countries</h4>
-                <table style="width: 100%; border-collapse: collapse;">
-                  <thead>
-                    <tr style="border-bottom: 2px solid #000;">
-                      <th style="padding: 0.5em; text-align: left; font-weight: 700;">Country</th>
-                      <th style="padding: 0.5em; text-align: right; font-weight: 700;">Views</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    ${geographyRes.countries.map(country => `
-                      <tr style="border-bottom: 1px solid #ccc;">
-                        <td style="padding: 0.5em;">${escapeHtml(country.country)}</td>
-                        <td style="padding: 0.5em; text-align: right;">${country.count}</td>
-                      </tr>
-                    `).join('')}
-                  </tbody>
-                </table>
-              </div>
-              ` : ''}
-
-              <!-- Time on Page by Page -->
+              <!-- Time on Page by Page (2) -->
               ${timeonpageRes?.by_page?.length > 0 ? `
               <div style="margin-bottom: 2em; padding: 1em; background-color: rgba(244, 232, 212, 0.3); border: 1px solid #000;">
                 <h4 style="margin-top: 0; margin-bottom: 1em;">Average Time on Page</h4>
@@ -396,13 +365,36 @@
               </div>
               ` : ''}
 
-              <!-- Page Views by Hour -->
-              ${hourlyRes?.hourly?.length > 0 ? `
-              <div style="margin-bottom: 2em; padding: 1em; background-color: rgba(244, 232, 212, 0.3); border: 1px solid #000;">
-                <h4 style="margin-top: 0; margin-bottom: 1em;">Page Views by Hour of Day (CST)</h4>
-                <canvas id="hourlyViewsChart" style="max-height: 300px;"></canvas>
+              <!-- Device Types and Top Countries side by side (3 & 4) -->
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1em; margin-bottom: 2em;">
+                ${devicesRes?.devices?.length > 0 ? `
+                <div style="padding: 1em; background-color: rgba(244, 232, 212, 0.3); border: 1px solid #000;">
+                  <h4 style="margin-top: 0; margin-bottom: 1em;">Device Types</h4>
+                  <canvas id="deviceTypesChart" style="max-height: 300px;"></canvas>
+                </div>
+                ` : '<div></div>'}
+                ${geographyRes?.countries?.length > 0 ? `
+                <div style="padding: 1em; background-color: rgba(244, 232, 212, 0.3); border: 1px solid #000;">
+                  <h4 style="margin-top: 0; margin-bottom: 1em;">Top Countries</h4>
+                  <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                      <tr style="border-bottom: 2px solid #000;">
+                        <th style="padding: 0.5em; text-align: left; font-weight: 700;">Country</th>
+                        <th style="padding: 0.5em; text-align: right; font-weight: 700;">Views</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${geographyRes.countries.map(country => `
+                        <tr style="border-bottom: 1px solid #ccc;">
+                          <td style="padding: 0.5em;">${escapeHtml(country.country)}</td>
+                          <td style="padding: 0.5em; text-align: right;">${country.count}</td>
+                        </tr>
+                      `).join('')}
+                    </tbody>
+                  </table>
+                </div>
+                ` : '<div></div>'}
               </div>
-              ` : ''}
 
               ${!pageviewsRes && !visitorsRes ? `
               <div style="padding: 1em; background-color: rgba(244, 232, 212, 0.3); border: 1px solid #000;">
@@ -415,18 +407,15 @@
 
             metricsEl.innerHTML = html;
             
-            // Render charts after HTML is inserted
-            if (pageviewsRes?.top_pages?.length > 0) {
-              renderTopPagesChart(pageviewsRes.top_pages);
-            }
-            if (devicesRes?.devices?.length > 0) {
-              renderDeviceTypesChart(devicesRes.devices);
+            // Render charts after HTML is inserted (in order)
+            if (hourlyRes?.hourly?.length > 0) {
+              renderHourlyViewsChart(hourlyRes.hourly);
             }
             if (timeonpageRes?.by_page?.length > 0) {
               renderTimeOnPageChart(timeonpageRes.by_page);
             }
-            if (hourlyRes?.hourly?.length > 0) {
-              renderHourlyViewsChart(hourlyRes.hourly);
+            if (devicesRes?.devices?.length > 0) {
+              renderDeviceTypesChart(devicesRes.devices);
             }
           } catch (err) {
             console.error("Error loading site metrics:", err);
@@ -438,86 +427,6 @@
               </p>
             `;
           }
-        }
-
-        // Render Top Pages bar chart
-        function renderTopPagesChart(data) {
-          // Destroy existing chart if it exists
-          if (window.topPagesChartInstance) {
-            window.topPagesChartInstance.destroy();
-          }
-
-          const ctx = document.getElementById('topPagesChart');
-          if (!ctx) return;
-
-          // Reverse data for horizontal bar chart (top to bottom)
-          const reversedData = [...data].reverse();
-          const labels = reversedData.map(page => getPageName(page.path || '/'));
-          const values = reversedData.map(page => page.count);
-
-          window.topPagesChartInstance = new Chart(ctx, {
-            type: 'bar',
-            data: {
-              labels: labels,
-              datasets: [{
-                label: 'Page Views',
-                data: values,
-                backgroundColor: 'rgba(0, 0, 0, 0.7)',
-                borderColor: '#000',
-                borderWidth: 1
-              }]
-            },
-            options: {
-              indexAxis: 'y', // Horizontal bar chart
-              responsive: true,
-              maintainAspectRatio: true,
-              plugins: {
-                legend: {
-                  display: false
-                },
-                tooltip: {
-                  backgroundColor: 'rgba(244, 232, 212, 0.95)',
-                  titleColor: '#000',
-                  bodyColor: '#000',
-                  borderColor: '#000',
-                  borderWidth: 1,
-                  padding: 12,
-                  callbacks: {
-                    label: function(context) {
-                      return 'Views: ' + context.parsed.x;
-                    }
-                  }
-                }
-              },
-              scales: {
-                x: {
-                  beginAtZero: true,
-                  ticks: {
-                    color: '#000',
-                    font: {
-                      family: "'EB Garamond', serif",
-                      size: 12
-                    }
-                  },
-                  grid: {
-                    color: 'rgba(0, 0, 0, 0.1)'
-                  }
-                },
-                y: {
-                  ticks: {
-                    color: '#000',
-                    font: {
-                      family: "'EB Garamond', serif",
-                      size: 12
-                    }
-                  },
-                  grid: {
-                    display: false
-                  }
-                }
-              }
-            }
-          });
         }
 
         // Render Device Types bar chart
@@ -613,10 +522,10 @@
           const ctx = document.getElementById('timeOnPageChart');
           if (!ctx) return;
 
-          // Reverse data for horizontal bar chart (top to bottom)
-          const reversedData = [...data].reverse();
-          const labels = reversedData.map(page => getPageName(page.path || '/'));
-          const values = reversedData.map(page => Math.round(page.average));
+          // Data is already sorted from most to least (highest to lowest average)
+          // Don't reverse so it displays most to least (top to bottom)
+          const labels = data.map(page => getPageName(page.path || '/'));
+          const values = data.map(page => Math.round(page.average));
 
           window.timeOnPageChartInstance = new Chart(ctx, {
             type: 'bar',
