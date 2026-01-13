@@ -5,23 +5,28 @@ import { createClient } from '@supabase/supabase-js';
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://ikksmrbqrirvenqlylxo.supabase.co';
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra3NtcmJxcmlydmVucWx5bHhvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgxODI5ODgsImV4cCI6MjA4Mzc1ODk4OH0.1pKE6_LFTii8R-xY8WvWlXR23mXW3sUpPpKniL9fFvc';
+// Use service role key for admin queries (bypasses RLS)
+// This is safe because we verify authentication before using it
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 // Verify Supabase authentication token
 async function verifyAuth(authHeader) {
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return null;
+    return false;
   }
 
   const token = authHeader.substring(7);
-  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   
+  // Verify the token is valid using anon key client
+  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   const { data: { user }, error } = await supabase.auth.getUser(token);
   
   if (error || !user) {
-    return null;
+    console.error('Auth verification error:', error);
+    return false;
   }
   
-  return user;
+  return true;
 }
 
 // Get date filter based on period
@@ -47,9 +52,9 @@ export default async function handler(req, res) {
 
   // Verify authentication
   const authHeader = req.headers.authorization;
-  const user = await verifyAuth(authHeader);
+  const isAuthenticated = await verifyAuth(authHeader);
   
-  if (!user) {
+  if (!isAuthenticated) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
@@ -78,7 +83,24 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Metric parameter required' });
     }
 
-    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    // Create Supabase client for queries
+    // If service role key is available, use it (bypasses RLS - safe because we verified auth)
+    // Otherwise, use anon key with user's token in headers (respects RLS)
+    let supabase;
+    if (SUPABASE_SERVICE_ROLE_KEY) {
+      supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    } else {
+      // Fallback: use anon key with user's token
+      const token = authHeader.substring(7);
+      supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+        global: {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      });
+    }
+    
     const dateFilter = getDateFilter(period);
 
     let result = {};
