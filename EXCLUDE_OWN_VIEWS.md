@@ -42,15 +42,16 @@ This method disables tracking entirely in your browser using localStorage. This 
 2. Go to the **Console** tab
 3. Run this command:
    ```javascript
-   localStorage.setItem('watchmans_cry_opt_out', 'true')
+   localStorage.setItem("watchmans_cry_opt_out", "true");
    ```
 4. Refresh the page - tracking will be disabled
 
 ### How to Opt Back In
 
 Run this command in the console:
+
 ```javascript
-localStorage.removeItem('watchmans_cry_opt_out')
+localStorage.removeItem("watchmans_cry_opt_out");
 ```
 
 ### Limitations
@@ -63,6 +64,7 @@ localStorage.removeItem('watchmans_cry_opt_out')
 ## Which Method Should I Use?
 
 - **Use Method 1 (Server-Side)** if:
+
   - You want to exclude your views from all analytics permanently
   - You access the site from multiple devices/locations
   - You want to filter historical data (after setting it up)
@@ -77,6 +79,7 @@ localStorage.removeItem('watchmans_cry_opt_out')
 ### My views are still showing up
 
 1. **For Method 1:**
+
    - Make sure you've redeployed after adding the environment variable
    - Verify the hash is correct (check `/get-my-ip-hash.html`)
    - If you have multiple IPs, make sure all are included (comma-separated)
