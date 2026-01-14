@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Get My IP Hash - Watchman's Cry</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Get Your IP Hash</h1>
+      <img src="images/divider.png" alt="divider" class="divider" />
+    </header>
+
+    <div style="max-width: 800px; margin: 2em auto; padding: 1em;">
+      <h2>Instructions</h2>
+      <p>This page helps you find your IP address hash so you can exclude your own views from analytics.</p>
+      
+      <div style="margin: 2em 0; padding: 1em; background-color: rgba(244, 232, 212, 0.3); border: 1px solid #000;">
+        <h3>Step 1: Get Your IP Hash</h3>
+        <p>Click the button below to fetch your IP address and calculate its hash:</p>
+        <button id="get-hash-btn" onclick="getIPHash()" style="padding: 0.75em 2em; background-color: #000; color: #f4e8d4; border: none; font-family: 'EB Garamond', serif; font-size: 1em; font-weight: 700; cursor: pointer; margin-bottom: 1em;">
+          Get My IP Hash
+        </button>
+        <div id="hash-result" style="display: none; margin-top: 1em; padding: 1em; background-color: rgba(0, 0, 0, 0.1); border: 1px solid #000;">
+          <p><strong>Your IP Hash:</strong></p>
+          <code id="ip-hash" style="display: block; padding: 0.5em; background-color: #fff; border: 1px solid #000; font-family: monospace; word-break: break-all; margin-top: 0.5em;"></code>
+          <button onclick="copyHash()" style="margin-top: 0.5em; padding: 0.5em 1em; background-color: #000; color: #f4e8d4; border: none; font-family: 'EB Garamond', serif; cursor: pointer;">
+            Copy Hash
+          </button>
+        </div>
+      </div>
+
+      <div style="margin: 2em 0; padding: 1em; background-color: rgba(244, 232, 212, 0.3); border: 1px solid #000;">
+        <h3>Step 2: Add to Environment Variable</h3>
+        <p>Add your IP hash to the <code>EXCLUDED_IP_HASHES</code> environment variable in Vercel:</p>
+        <ol style="margin-left: 1.5em; margin-top: 0.5em;">
+          <li>Go to your Vercel project dashboard</li>
+          <li>Navigate to Settings → Environment Variables</li>
+          <li>Add a new variable:
+            <ul style="margin-top: 0.5em;">
+              <li><strong>Name:</strong> <code>EXCLUDED_IP_HASHES</code></li>
+              <li><strong>Value:</strong> Your IP hash (or comma-separated list of hashes)</li>
+              <li><strong>Environment:</strong> Production, Preview, Development (select all)</li>
+            </ul>
+          </li>
+          <li>Redeploy your application for changes to take effect</li>
+        </ol>
+        <p style="margin-top: 1em; font-size: 0.9em; color: #666;">
+          <strong>Note:</strong> If you have multiple IP addresses (home, office, mobile), you can add them all separated by commas.
+        </p>
+      </div>
+
+      <div style="margin: 2em 0; padding: 1em; background-color: rgba(244, 232, 212, 0.3); border: 1px solid #000;">
+        <h3>Alternative: Client-Side Opt-Out</h3>
+        <p>You can also disable tracking entirely in your browser using localStorage:</p>
+        <ol style="margin-left: 1.5em; margin-top: 0.5em;">
+          <li>Open your browser's developer console (F12)</li>
+          <li>Run this command to opt out:
+            <pre style="background-color: #fff; padding: 0.5em; border: 1px solid #000; margin-top: 0.5em; overflow-x: auto;"><code>localStorage.setItem('watchmans_cry_opt_out', 'true')</code></pre>
+          </li>
+          <li>To opt back in, run:
+            <pre style="background-color: #fff; padding: 0.5em; border: 1px solid #000; margin-top: 0.5em; overflow-x: auto;"><code>localStorage.removeItem('watchmans_cry_opt_out')</code></pre>
+          </li>
+        </ol>
+        <p style="margin-top: 1em; font-size: 0.9em; color: #666;">
+          <strong>Note:</strong> This only works for the browser where you run the command. It won't affect other devices or browsers.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Function to hash IP address using SHA-256 (same as server-side)
+    async function hashIP(ip) {
+      // Use Web Crypto API for SHA-256 hashing
+      const encoder = new TextEncoder();
+      const data = encoder.encode(ip);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+      return hashHex;
+    }
+
+    // Get IP address and hash it
+    async function getIPHash() {
+      const btn = document.getElementById('get-hash-btn');
+      const resultDiv = document.getElementById('hash-result');
+      const hashCode = document.getElementById('ip-hash');
+      
+      btn.disabled = true;
+      btn.textContent = 'Fetching...';
+      
+      try {
+        // Fetch IP address from a public API
+        const response = await fetch('https://api.ipify.org?format=json');
+        const data = await response.json();
+        const ip = data.ip;
+        
+        // Hash the IP
+        const hash = await hashIP(ip);
+        
+        // Display results
+        hashCode.textContent = hash;
+        resultDiv.style.display = 'block';
+        window.currentHash = hash; // Store for copy function
+        
+        btn.disabled = false;
+        btn.textContent = 'Get My IP Hash';
+      } catch (error) {
+        alert('Error fetching IP address. Please try again.');
+        console.error('Error:', error);
+        btn.disabled = false;
+        btn.textContent = 'Get My IP Hash';
+      }
+    }
+
+    // Copy hash to clipboard
+    function copyHash() {
+      if (window.currentHash) {
+        navigator.clipboard.writeText(window.currentHash).then(() => {
+          alert('Hash copied to clipboard!');
+        }).catch(err => {
+          console.error('Failed to copy:', err);
+          // Fallback: select text
+          const hashCode = document.getElementById('ip-hash');
+          const range = document.createRange();
+          range.selectNode(hashCode);
+          window.getSelection().removeAllRanges();
+          window.getSelection().addRange(range);
+          alert('Hash selected. Press Ctrl+C to copy.');
+        });
+      }
+    }
+  </script>
+</body>
+</html>

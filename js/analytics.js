@@ -4,6 +4,13 @@
 (function() {
   'use strict';
 
+  // Check for opt-out flag in localStorage
+  // Set this by running: localStorage.setItem('watchmans_cry_opt_out', 'true')
+  // Clear it by running: localStorage.removeItem('watchmans_cry_opt_out')
+  if (localStorage.getItem('watchmans_cry_opt_out') === 'true') {
+    return; // Exit if user has opted out
+  }
+
   // Respect Do Not Track
   if (navigator.doNotTrack === '1' || navigator.doNotTrack === 'yes') {
     return; // Exit if user has Do Not Track enabled

@@ -29,6 +29,17 @@ async function verifyAuth(authHeader) {
   return true;
 }
 
+// Get excluded IP hashes from environment variable
+// Format: comma-separated list of SHA-256 hashes (e.g., "hash1,hash2,hash3")
+function getExcludedIPHashes() {
+  const excludedIPs = process.env.EXCLUDED_IP_HASHES || '';
+  if (!excludedIPs) {
+    return [];
+  }
+  // Split by comma and trim whitespace
+  return excludedIPs.split(',').map(hash => hash.trim()).filter(hash => hash.length > 0);
+}
+
 // Get date filter based on period
 function getDateFilter(period) {
   const now = new Date();
@@ -102,6 +113,7 @@ export default async function handler(req, res) {
     }
     
     const dateFilter = getDateFilter(period);
+    const excludedIPHashes = getExcludedIPHashes();
 
     let result = {};
 
@@ -115,6 +127,14 @@ export default async function handler(req, res) {
           query = query.gte('created_at', dateFilter);
         }
 
+        // Exclude filtered IPs
+        // Note: Multiple .neq() calls create AND conditions, which correctly excludes all listed IPs
+        if (excludedIPHashes.length > 0) {
+          excludedIPHashes.forEach(hash => {
+            query = query.neq('hashed_ip', hash);
+          });
+        }
+
         // Get total count
         const { count: total } = await query;
 
@@ -126,6 +146,13 @@ export default async function handler(req, res) {
 
         if (dateFilter) {
           topPagesQuery = topPagesQuery.gte('created_at', dateFilter);
+        }
+
+        // Exclude filtered IPs
+        if (excludedIPHashes.length > 0) {
+          excludedIPHashes.forEach(hash => {
+            topPagesQuery = topPagesQuery.neq('hashed_ip', hash);
+          });
         }
 
         const { data: allPages } = await topPagesQuery;
@@ -161,6 +188,13 @@ export default async function handler(req, res) {
           query = query.gte('first_visit_at', dateFilter);
         }
 
+        // Exclude filtered IPs
+        if (excludedIPHashes.length > 0) {
+          excludedIPHashes.forEach(hash => {
+            query = query.neq('hashed_ip', hash);
+          });
+        }
+
         const { data: visitors, count: totalVisitors } = await query;
 
         // Count unique visitors (by hashed_ip)
@@ -191,6 +225,13 @@ export default async function handler(req, res) {
 
         if (dateFilter) {
           query = query.gte('created_at', dateFilter);
+        }
+
+        // Exclude filtered IPs
+        if (excludedIPHashes.length > 0) {
+          excludedIPHashes.forEach(hash => {
+            query = query.neq('hashed_ip', hash);
+          });
         }
 
         const { data: devices } = await query;
@@ -224,6 +265,13 @@ export default async function handler(req, res) {
           query = query.gte('created_at', dateFilter);
         }
 
+        // Exclude filtered IPs
+        if (excludedIPHashes.length > 0) {
+          excludedIPHashes.forEach(hash => {
+            query = query.neq('hashed_ip', hash);
+          });
+        }
+
         const { data: countries } = await query;
 
         // Aggregate by country
@@ -254,6 +302,13 @@ export default async function handler(req, res) {
 
         if (dateFilter) {
           query = query.gte('created_at', dateFilter);
+        }
+
+        // Exclude filtered IPs
+        if (excludedIPHashes.length > 0) {
+          excludedIPHashes.forEach(hash => {
+            query = query.neq('hashed_ip', hash);
+          });
         }
 
         const { data: timeData } = await query;
@@ -313,6 +368,13 @@ export default async function handler(req, res) {
         // Filter by page path if provided
         if (page_path) {
           query = query.eq('page_path', page_path);
+        }
+
+        // Exclude filtered IPs
+        if (excludedIPHashes.length > 0) {
+          excludedIPHashes.forEach(hash => {
+            query = query.neq('hashed_ip', hash);
+          });
         }
 
         const { data: views } = await query;
