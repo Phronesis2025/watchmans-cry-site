@@ -299,12 +299,20 @@ export default async function handler(req, res) {
 
       case 'hourly': {
         // Get page views with timestamps
+        // Optional: filter by page_path if provided
+        const { page_path } = req.query;
+        
         let query = supabase
           .from('page_views')
           .select('created_at');
 
         if (dateFilter) {
           query = query.gte('created_at', dateFilter);
+        }
+
+        // Filter by page path if provided
+        if (page_path) {
+          query = query.eq('page_path', page_path);
         }
 
         const { data: views } = await query;

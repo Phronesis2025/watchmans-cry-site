@@ -352,7 +352,13 @@
               <!-- Page Views by Hour (1) -->
               ${hourlyRes?.hourly?.length > 0 ? `
               <div style="margin-bottom: 2em; padding: 1em; background-color: rgba(244, 232, 212, 0.3); border: 1px solid #000;">
-                <h4 style="margin-top: 0; margin-bottom: 1em;">Page Views by Hour of Day (CST)</h4>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1em;">
+                  <h4 style="margin: 0;">Page Views by Hour of Day (CST)</h4>
+                  <div id="hourly-filter-indicator" style="display: none; font-size: 0.9em; color: #666;">
+                    <span id="filtered-page-name"></span>
+                    <button onclick="clearHourlyFilter()" style="margin-left: 0.5em; padding: 0.25em 0.5em; background-color: #000; color: #f4e8d4; border: none; font-family: 'EB Garamond', serif; cursor: pointer; font-size: 0.85em;">Clear Filter</button>
+                  </div>
+                </div>
                 <canvas id="hourlyViewsChart" style="max-height: 300px;"></canvas>
               </div>
               ` : ''}
@@ -406,6 +412,15 @@
             `;
 
             metricsEl.innerHTML = html;
+            
+            // Store data globally for filtering functionality
+            window.currentAnalyticsData = {
+              hourly: hourlyRes?.hourly || [],
+              timeOnPage: timeonpageRes?.by_page || [],
+              period: period,
+              token: token
+            };
+            window.selectedPagePath = null; // Track selected page for filtering
             
             // Render charts after HTML is inserted (in order)
             if (hourlyRes?.hourly?.length > 0) {
@@ -543,6 +558,23 @@
               indexAxis: 'y', // Horizontal bar chart
               responsive: true,
               maintainAspectRatio: true,
+              // Add click interaction
+              onClick: function(event, elements) {
+                if (elements.length > 0) {
+                  // Get the clicked bar index
+                  const clickedIndex = elements[0].index;
+                  // Get the page path from the data
+                  const selectedPage = data[clickedIndex];
+                  if (selectedPage && selectedPage.path) {
+                    // Filter hourly chart by this page
+                    filterHourlyChartByPage(selectedPage.path, getPageName(selectedPage.path || '/'));
+                  }
+                }
+              },
+              // Change cursor to pointer to indicate clickability
+              onHover: function(event, elements) {
+                event.native.target.style.cursor = elements.length > 0 ? 'pointer' : 'default';
+              },
               plugins: {
                 legend: {
                   display: false
@@ -557,6 +589,9 @@
                   callbacks: {
                     label: function(context) {
                       return 'Avg. Time: ' + context.parsed.x + 's';
+                    },
+                    afterTitle: function(context) {
+                      return 'Click to filter hourly chart';
                     }
                   }
                 }
@@ -687,6 +722,67 @@
               }
             }
           });
+        }
+
+        // Filter hourly chart by selected page
+        async function filterHourlyChartByPage(pagePath, pageName) {
+          // Store the selected page path
+          window.selectedPagePath = pagePath;
+          
+          // Show filter indicator
+          const indicator = document.getElementById('hourly-filter-indicator');
+          const pageNameSpan = document.getElementById('filtered-page-name');
+          if (indicator && pageNameSpan) {
+            pageNameSpan.textContent = `Filtered by: ${pageName}`;
+            indicator.style.display = 'block';
+          }
+
+          // Get current analytics data
+          const analyticsData = window.currentAnalyticsData;
+          if (!analyticsData || !analyticsData.token) {
+            console.error('Analytics data not available');
+            return;
+          }
+
+          try {
+            // Fetch filtered hourly data
+            const period = analyticsData.period || '7d';
+            const response = await fetch(`/api/analytics-data?metric=hourly&period=${period}&page_path=${encodeURIComponent(pagePath)}`, {
+              headers: { 'Authorization': `Bearer ${analyticsData.token}` }
+            });
+
+            if (response.ok) {
+              const filteredData = await response.json();
+              if (filteredData?.hourly?.length > 0) {
+                // Re-render the hourly chart with filtered data
+                renderHourlyViewsChart(filteredData.hourly);
+              } else {
+                // No data for this page - show empty chart
+                renderHourlyViewsChart(Array.from({length: 24}, (_, i) => ({ hour: i, count: 0 })));
+              }
+            } else {
+              console.error('Failed to fetch filtered hourly data');
+            }
+          } catch (error) {
+            console.error('Error filtering hourly chart:', error);
+          }
+        }
+
+        // Clear the hourly filter and show all data
+        function clearHourlyFilter() {
+          window.selectedPagePath = null;
+          
+          // Hide filter indicator
+          const indicator = document.getElementById('hourly-filter-indicator');
+          if (indicator) {
+            indicator.style.display = 'none';
+          }
+
+          // Get original hourly data and re-render
+          const analyticsData = window.currentAnalyticsData;
+          if (analyticsData && analyticsData.hourly && analyticsData.hourly.length > 0) {
+            renderHourlyViewsChart(analyticsData.hourly);
+          }
         }
       </script>
     </div>
