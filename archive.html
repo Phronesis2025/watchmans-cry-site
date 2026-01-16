@@ -1,109 +1,213 @@
 <!DOCTYPE html>
+<!-- 
+   Archive Page - The Watchman's Cry
+   Lists all past editions chronologically (newest first)
+   Each entry includes: date, teaser from Opening Dispatch, link to full edition
+   Maintains 18th-century broadsheet styling consistent with site
+-->
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Archive - The Watchman's Cry</title>
-    <link rel="stylesheet" href="css/style.css">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Archive - The Watchman's Cry: Common Sense Reborn</title>
+    <link rel="stylesheet" href="css/style.css" />
     <script src="js/script.js" defer></script>
-</head>
-<body>
+  </head>
+  <body>
     <div class="container">
-        <!-- Masthead -->
-        <header>
-            <img src="images/Banner 2.png" alt="The Watchman's Cry Banner" style="width: 100%; max-width: 800px; height: auto; display: block; margin: 0 auto 1em;" />
-            <h1>The Watchman's Cry</h1>
-            <h2>Common Sense Reborn</h2>
-            <p class="tagline">Poor Richard's Almanac Reborn – 2026 Edition</p>
-            <img src="images/divider.png" alt="divider" class="divider" />
-        </header>
+      <!-- Masthead - The newspaper header -->
+      <header>
+        <img
+          src="images/Banner 2.png"
+          alt="The Watchman's Cry Banner"
+          style="
+            width: 100%;
+            max-width: 800px;
+            height: auto;
+            display: block;
+            margin: 0 auto 1em;
+          "
+        />
+        <h1>The Watchman's Cry</h1>
+        <h2>Common Sense Reborn</h2>
+        <p class="tagline">Poor Richard's Almanac Reborn – 2026 Edition</p>
+        <img src="images/divider.png" alt="divider" class="divider" />
+      </header>
 
-        <!-- Navigation menu -->
-        <nav>
-            <ul>
-                <li>
-                  <a href="index.html">
-                    <span class="nav-initial">H</span><span class="nav-word">ome</span>
-                  </a>
-                </li>
-                <li><a href="archive.html">Archive</a></li>
-                <li>
-                  <a href="about.html">
-                    <span class="nav-initial">A</span><span class="nav-word">bout</span>
-                  </a>
-                </li>
-                <li>
-                  <a href="staff.html">
-                    <span class="nav-initial">V</span><span class="nav-word">oices</span>
-                  </a>
-                </li>
-                <li>
-                  <a href="submit.html">
-                    <span class="nav-initial">S</span><span class="nav-word">ubmit</span>
-                  </a>
-                </li>
-            </ul>
-        </nav>
-
-        <!-- Archive Content -->
-        <section>
-            <h2>Archive of Past Editions</h2>
-            <p class="drop-cap">Here you will find all previous editions of The Watchman's Cry, preserved for posterity and reference. Each edition contains the full collection of articles, dispatches, and counsel from that publication date.</p>
-
-            <img src="images/divider.png" alt="divider" class="divider" />
-
-            <ul class="archive-list">
-                <li>
-                    <a href="archive/edition-2026-01-16.html">January 16, 2026</a>
-                    <p style="font-size: 0.9em; margin-top: 0.25em;">Featuring: The Watchman's observations on current events, Prophetic Parallels examining historical precedents, and responses to Common Man's Counsel.</p>
-                </li>
-                <li>
-                    <a href="archive/edition-2026-01-09.html">January 9, 2026</a>
-                    <p style="font-size: 0.9em; margin-top: 0.25em;">Inaugural Edition: Opening Dispatch, The Plain Truth, Prophetic Parallels, and Common Man's Counsel.</p>
-                </li>
-            </ul>
-
-            <img src="images/divider.png" alt="divider" class="divider" />
-
-            <p style="text-align: center; font-style: italic;">More editions will be added as they are published. Check back regularly for new content.</p>
-        </section>
-
-        <footer>
-            <p>&copy; 2026 The Watchman's Cry: Common Sense Reborn</p>
-        </footer>
-    </div>
-    <!-- Page footer -->
-    <div style="max-width: 800px; margin: 0 auto; padding: 0 20px;">
-      <img src="images/divider.png" alt="divider" class="divider" />
-      <nav style="text-align: center; margin: 1em 0;">
+      <!-- Navigation menu -->
+      <nav>
         <ul>
           <li>
             <a href="index.html">
-              <span class="nav-initial">H</span><span class="nav-word">ome</span>
+              <span class="nav-initial">H</span
+              ><span class="nav-word">ome</span>
             </a>
           </li>
+          <li><a href="archive.html">Archive</a></li>
           <li>
             <a href="about.html">
-              <span class="nav-initial">A</span><span class="nav-word">bout</span>
+              <span class="nav-initial">A</span
+              ><span class="nav-word">bout</span>
             </a>
           </li>
           <li>
             <a href="staff.html">
-              <span class="nav-initial">V</span><span class="nav-word">oices</span>
+              <span class="nav-initial">V</span
+              ><span class="nav-word">oices</span>
             </a>
           </li>
           <li>
             <a href="submit.html">
-              <span class="nav-initial">S</span><span class="nav-word">ubmit</span>
+              <span class="nav-initial">S</span
+              ><span class="nav-word">ubmit</span>
+            </a>
+          </li>
+        </ul>
+      </nav>
+
+      <!-- Archive Content Section -->
+      <section class="edition">
+        <h2>Archive of Past Editions</h2>
+        <p class="drop-cap">
+          Here you will find all previous editions of The Watchman's Cry,
+          preserved for posterity and reference. Each edition contains the full
+          collection of articles, dispatches, counsel, and wisdom from that
+          publication date. Browse chronologically, newest first, and discover
+          the watchman's cry as it echoed through the ages.
+        </p>
+
+        <img src="images/divider.png" alt="divider" class="divider" />
+
+        <!-- Archive Entry: January 15, 2026 (January 11 content) -->
+        <article class="section archive-entry">
+          <h3>January 15, 2026</h3>
+          <!-- Optional woodcut image - uncomment and add image path when available -->
+          <!-- <img
+            class="woodcut float-right"
+            src="images/placeholder.png"
+            alt="Opening Dispatch illustration"
+            style="max-width: 200px; margin-left: 1em; margin-bottom: 1em;"
+          /> -->
+          <p class="drop-cap">
+            Patriots, behold the hour! As 2026 unfolds, the republic quakes
+            under the weight of lawlessness unleashed. Tens of thousands flood
+            Minneapolis streets in raging protests over the fatal ICE shooting
+            of activist Renee Good—chanting "Abolish ICE," hurling ice and
+            rocks, blocking roads in defiance of order. Nationwide, over 1,000
+            rallies erupt against deportations, from Portland to Columbus, with
+            violence flaring: protesters clashing with officers, vehicles
+            ramming threats, death threats skyrocketing. DHS reports assaults on
+            ICE agents up 1,300%, vehicular attacks 3,200%, death threats
+            8,000%—a direct fruit of radical rhetoric from sanctuary
+            politicians.
+          </p>
+          <p style="margin-top: 1em;">
+            <a
+              href="archive/2026-01-15/index-2026-01-15.html"
+              style="
+                font-weight: bold;
+                color: #8b4513;
+                text-decoration: underline;
+              "
+              >Read the full edition →</a
+            >
+          </p>
+        </article>
+
+        <img src="images/divider.png" alt="divider" class="divider" />
+
+        <!-- Archive Entry: January 9, 2026 -->
+        <article class="section archive-entry">
+          <h3>January 9, 2026</h3>
+          <!-- Optional woodcut image - uncomment and add image path when available -->
+          <!-- <img
+            class="woodcut float-right"
+            src="images/placeholder.png"
+            alt="Opening Dispatch illustration"
+            style="max-width: 200px; margin-left: 1em; margin-bottom: 1em;"
+          /> -->
+          <p class="drop-cap">
+            In these times of great uncertainty, when the voices of reason are
+            drowned by the clamor of division, we take up the mantle of the
+            watchman. As the sentinel stands guard through the night, so too
+            must we remain vigilant in our pursuit of truth and common sense.
+            This publication serves as a beacon for those who seek clarity
+            amidst confusion, wisdom in place of folly, and unity over discord.
+            We begin our journey not as mere observers, but as active
+            participants in the great discourse of our age. The watchman's cry
+            echoes across the ages, calling us to remember the principles that
+            have guided free peoples throughout history.
+          </p>
+          <p style="margin-top: 1em;">
+            <a
+              href="archive/edition-2026-01-09.html"
+              style="
+                font-weight: bold;
+                color: #8b4513;
+                text-decoration: underline;
+              "
+              >Read the full edition →</a
+            >
+          </p>
+        </article>
+
+        <img src="images/divider.png" alt="divider" class="divider" />
+
+        <!-- Closing note for archive -->
+        <p
+          style="
+            text-align: center;
+            font-style: italic;
+            margin-top: 2em;
+            margin-bottom: 1em;
+          "
+        >
+          More editions will be added as they are published. The watchman's
+          duty continues, and each edition stands as a testament to vigilance
+          and truth.
+        </p>
+      </section>
+    </div>
+
+    <!-- Page footer - consistent with index.html -->
+    <div style="max-width: 800px; margin: 0 auto; padding: 0 20px">
+      <img src="images/divider.png" alt="divider" class="divider" />
+      <nav style="text-align: center; margin: 1em 0">
+        <ul>
+          <li>
+            <a href="index.html">
+              <span class="nav-initial">H</span
+              ><span class="nav-word">ome</span>
+            </a>
+          </li>
+          <li>
+            <a href="about.html">
+              <span class="nav-initial">A</span
+              ><span class="nav-word">bout</span>
+            </a>
+          </li>
+          <li>
+            <a href="staff.html">
+              <span class="nav-initial">V</span
+              ><span class="nav-word">oices</span>
+            </a>
+          </li>
+          <li>
+            <a href="submit.html">
+              <span class="nav-initial">S</span
+              ><span class="nav-word">ubmit</span>
             </a>
           </li>
         </ul>
       </nav>
       <div class="page-footer">
+        <p style="text-align: center; margin-bottom: 0.5em">
+          &copy; 2026 The Watchman's Cry: Common Sense Reborn
+        </p>
         RSJr. For the Republic.
       </div>
     </div>
     <!-- Analytics Tracking -->
     <script src="js/analytics.js" defer></script>
-</body>
+  </body>
 </html>

@@ -203,10 +203,10 @@ nav a:hover {
   text-decoration: underline;
 }
 
-/* Hide Archive for now */
-nav a[href*="archive.html"] {
+/* Archive link is now visible - archive page is functional */
+/* nav a[href*="archive.html"] {
   display: none;
-}
+} */
 
 /* =========================
    ARTICLES & TEXT
@@ -214,6 +214,29 @@ nav a[href*="archive.html"] {
 
 article {
   margin: 2em 0;
+}
+
+/* Archive entry styling */
+.archive-entry {
+  margin: 2.5em 0;
+  padding: 1.5em;
+  background-color: rgba(255, 255, 255, 0.3);
+  border-left: 3px solid #8b4513;
+}
+
+.archive-entry h3 {
+  margin-top: 0;
+  margin-bottom: 1em;
+  color: #8b4513;
+}
+
+.archive-entry p {
+  margin-bottom: 0.75em;
+}
+
+.archive-entry a {
+  display: inline-block;
+  margin-top: 0.5em;
 }
 
 section {
@@ -509,6 +532,20 @@ form button[type="submit"]:active {
     float: none;
     max-width: 100%;
     margin: 1em 0;
+  }
+
+  /* Archive entries stack cleanly on mobile */
+  .archive-entry {
+    padding: 1em;
+    margin: 1.5em 0;
+  }
+
+  .archive-entry img.woodcut.float-right {
+    float: none;
+    width: 100%;
+    max-width: 100%;
+    margin: 1em auto;
+    display: block;
   }
 
   .staff-member {
