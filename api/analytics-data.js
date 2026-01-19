@@ -417,6 +417,158 @@ export default async function handler(req, res) {
         break;
       }
 
+      case 'timeline': {
+        // Get page views with timestamps for hierarchical timeline view
+        // Returns: months -> days -> hours structure
+        let query = supabase
+          .from('page_views')
+          .select('created_at');
+
+        if (dateFilter) {
+          query = query.gte('created_at', dateFilter);
+        }
+
+        // Optional filters
+        // Note: We filter in UTC (database timezone) but group/display in CST
+        // We'll filter with a wider range to account for timezone differences, then group by CST
+        const { month, day } = req.query;
+        if (month) {
+          // Filter to specific month (format: YYYY-MM)
+          // Filter from start of month in UTC, then group by CST when processing
+          const monthStart = new Date(month + '-01T00:00:00Z');
+          const monthEnd = new Date(monthStart);
+          monthEnd.setMonth(monthEnd.getMonth() + 1);
+          query = query.gte('created_at', monthStart.toISOString())
+                   .lt('created_at', monthEnd.toISOString());
+        }
+        if (day) {
+          // Filter to specific day (format: YYYY-MM-DD)
+          // Filter from start of day in UTC, then group by CST when processing
+          const dayStart = new Date(day + 'T00:00:00Z');
+          const dayEnd = new Date(dayStart);
+          dayEnd.setDate(dayEnd.getDate() + 1);
+          query = query.gte('created_at', dayStart.toISOString())
+                   .lt('created_at', dayEnd.toISOString());
+        }
+
+        // Exclude filtered IPs
+        if (excludedIPHashes.length > 0) {
+          excludedIPHashes.forEach(hash => {
+            query = query.neq('hashed_ip', hash);
+          });
+        }
+
+        const { data: views } = await query;
+
+        if (!views || views.length === 0) {
+          result = { months: [], days: [], hours: [] };
+          break;
+        }
+
+        // Helper to convert UTC to CST and format
+        function toCST(date) {
+          return new Date(date.toLocaleString('en-US', { timeZone: 'America/Chicago' }));
+        }
+
+        // Group by month, day, and hour
+        const monthMap = {};
+        const dayMap = {};
+        const hourMap = {};
+
+        views.forEach(view => {
+          if (view.created_at) {
+            const utcDate = new Date(view.created_at);
+            const cstDate = toCST(utcDate);
+            
+            const year = cstDate.getFullYear();
+            const month = String(cstDate.getMonth() + 1).padStart(2, '0');
+            const day = String(cstDate.getDate()).padStart(2, '0');
+            const hour = cstDate.getHours();
+            
+            const monthKey = `${year}-${month}`;
+            const dayKey = `${year}-${month}-${day}`;
+            const hourKey = hour;
+
+            // Always count by month (for navigation/breadcrumbs)
+            if (!monthMap[monthKey]) {
+              monthMap[monthKey] = 0;
+            }
+            monthMap[monthKey]++;
+
+            // Count by day if filtering by month (to show days for selected month)
+            if (month) {
+              if (!dayMap[dayKey]) {
+                dayMap[dayKey] = 0;
+              }
+              dayMap[dayKey]++;
+            }
+
+            // Count by hour if filtering by day (to show hours for selected day)
+            if (day) {
+              if (!hourMap[hourKey]) {
+                hourMap[hourKey] = 0;
+              }
+              hourMap[hourKey]++;
+            }
+          }
+        });
+
+        // Month and day name arrays
+        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                           'July', 'August', 'September', 'October', 'November', 'December'];
+        const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+        // Format months
+        const months = Object.entries(monthMap)
+          .map(([monthKey, count]) => {
+            const [year, month] = monthKey.split('-');
+            return {
+              month: monthKey,
+              label: `${monthNames[parseInt(month) - 1]} ${year}`,
+              count: count
+            };
+          })
+          .sort((a, b) => a.month.localeCompare(b.month));
+
+        // Format days (only if month filter is provided)
+        const days = [];
+        if (month) {
+          const formattedDays = Object.entries(dayMap)
+            .map(([dayKey, count]) => {
+              const [year, monthNum, dayNum] = dayKey.split('-');
+              const date = new Date(year, parseInt(monthNum) - 1, parseInt(dayNum));
+              return {
+                day: dayKey,
+                label: `${monthNames[parseInt(monthNum) - 1]} ${dayNum}, ${year} (${dayNames[date.getDay()]})`,
+                count: count
+              };
+            })
+            .sort((a, b) => a.day.localeCompare(b.day));
+          days.push(...formattedDays);
+        }
+
+        // Format hours (only if day filter is provided)
+        const hours = [];
+        if (day) {
+          for (let i = 0; i < 24; i++) {
+            const period = i >= 12 ? 'PM' : 'AM';
+            const displayHour = i === 0 ? 12 : i > 12 ? i - 12 : i;
+            hours.push({
+              hour: i,
+              label: `${displayHour} ${period}`,
+              count: hourMap[i] || 0
+            });
+          }
+        }
+
+        result = {
+          months: months,
+          days: days,
+          hours: hours
+        };
+        break;
+      }
+
       default:
         return res.status(400).json({ error: 'Invalid metric' });
     }

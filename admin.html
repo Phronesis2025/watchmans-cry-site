@@ -296,7 +296,7 @@
             const period = periodSelect ? periodSelect.value : '7d';
             const token = session.access_token;
 
-            const [pageviewsRes, visitorsRes, devicesRes, geographyRes, timeonpageRes, hourlyRes] = await Promise.all([
+            const [pageviewsRes, visitorsRes, devicesRes, geographyRes, timeonpageRes, hourlyRes, timelineRes] = await Promise.all([
               fetch(`/api/analytics-data?metric=pageviews&period=${period}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
               }).then(r => r.ok ? r.json() : null).catch(() => null),
@@ -313,6 +313,9 @@
                 headers: { 'Authorization': `Bearer ${token}` }
               }).then(r => r.ok ? r.json() : null).catch(() => null),
               fetch(`/api/analytics-data?metric=hourly&period=${period}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+              }).then(r => r.ok ? r.json() : null).catch(() => null),
+              fetch(`/api/analytics-data?metric=timeline&period=${period}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
               }).then(r => r.ok ? r.json() : null).catch(() => null)
             ]);
@@ -348,6 +351,20 @@
                   <p style="font-size: 2em; font-weight: 700; margin: 0;">${timeonpageRes?.overall_average || 0}s</p>
                 </div>
               </div>
+
+              <!-- Visitor Timeline Chart (Month -> Day -> Hour) -->
+              ${timelineRes?.months?.length > 0 ? `
+              <div style="margin-bottom: 2em; padding: 1em; background-color: rgba(244, 232, 212, 0.3); border: 1px solid #000;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1em;">
+                  <h4 style="margin: 0;">Visitor Activity Timeline</h4>
+                  <div id="timeline-breadcrumb" style="font-size: 0.9em; color: #666;">
+                    <span id="timeline-level-indicator">Viewing: Months</span>
+                    <button id="timeline-back-btn" onclick="goBackTimeline()" style="margin-left: 0.5em; padding: 0.25em 0.5em; background-color: #000; color: #f4e8d4; border: none; font-family: 'EB Garamond', serif; cursor: pointer; font-size: 0.85em; display: none;">← Back</button>
+                  </div>
+                </div>
+                <canvas id="timelineChart" style="max-height: 400px;"></canvas>
+              </div>
+              ` : ''}
 
               <!-- Page Views by Hour (1) -->
               ${hourlyRes?.hourly?.length > 0 ? `
@@ -417,12 +434,23 @@
             window.currentAnalyticsData = {
               hourly: hourlyRes?.hourly || [],
               timeOnPage: timeonpageRes?.by_page || [],
+              timeline: timelineRes || null,
               period: period,
               token: token
             };
             window.selectedPagePath = null; // Track selected page for filtering
+            window.timelineState = {
+              level: 'months', // 'months', 'days', 'hours'
+              selectedMonth: null,
+              selectedDay: null
+            };
+            // Store original timeline data for navigation
+            window.originalTimelineData = timelineRes || null;
             
             // Render charts after HTML is inserted (in order)
+            if (timelineRes?.months?.length > 0) {
+              renderTimelineChart(timelineRes, 'months');
+            }
             if (hourlyRes?.hourly?.length > 0) {
               renderHourlyViewsChart(hourlyRes.hourly);
             }
@@ -782,6 +810,262 @@
           const analyticsData = window.currentAnalyticsData;
           if (analyticsData && analyticsData.hourly && analyticsData.hourly.length > 0) {
             renderHourlyViewsChart(analyticsData.hourly);
+          }
+        }
+
+        // Render Timeline Chart (Month -> Day -> Hour drill-down)
+        function renderTimelineChart(data, level, selectedMonth = null, selectedDay = null) {
+          // Destroy existing chart if it exists
+          if (window.timelineChartInstance) {
+            window.timelineChartInstance.destroy();
+          }
+
+          const ctx = document.getElementById('timelineChart');
+          if (!ctx) return;
+
+          let labels = [];
+          let values = [];
+          let chartType = 'bar';
+          let indexAxis = 'y';
+
+          // Update timeline state
+          window.timelineState.level = level;
+          window.timelineState.selectedMonth = selectedMonth;
+          window.timelineState.selectedDay = selectedDay;
+
+          // Update breadcrumb
+          const indicator = document.getElementById('timeline-level-indicator');
+          const backBtn = document.getElementById('timeline-back-btn');
+          
+          if (level === 'months') {
+            if (!data.months || data.months.length === 0) {
+              labels = ['No data'];
+              values = [0];
+            } else {
+              labels = data.months.map(m => m.label);
+              values = data.months.map(m => m.count);
+            }
+            if (indicator) indicator.textContent = 'Viewing: Months';
+            if (backBtn) backBtn.style.display = 'none';
+          } else if (level === 'days') {
+            if (!data.days || data.days.length === 0) {
+              labels = ['No data for this month'];
+              values = [0];
+            } else {
+              labels = data.days.map(d => d.label);
+              values = data.days.map(d => d.count);
+            }
+            const monthLabel = selectedMonth ? new Date(selectedMonth + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'selected month';
+            if (indicator) indicator.textContent = `Viewing: Days in ${monthLabel}`;
+            if (backBtn) backBtn.style.display = 'inline-block';
+          } else if (level === 'hours') {
+            // Always show all 24 hours, even if count is 0
+            labels = [];
+            values = [];
+            for (let i = 0; i < 24; i++) {
+              const period = i >= 12 ? 'PM' : 'AM';
+              const displayHour = i === 0 ? 12 : i > 12 ? i - 12 : i;
+              labels.push(`${displayHour} ${period}`);
+              const hourData = data.hours?.find(h => h.hour === i);
+              values.push(hourData ? hourData.count : 0);
+            }
+            chartType = 'line';
+            indexAxis = 'x';
+            const dayLabel = selectedDay ? new Date(selectedDay).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'selected day';
+            if (indicator) indicator.textContent = `Viewing: Hours on ${dayLabel}`;
+            if (backBtn) backBtn.style.display = 'inline-block';
+          }
+
+          const chartConfig = {
+            type: chartType,
+            data: {
+              labels: labels,
+              datasets: [{
+                label: 'Visits',
+                data: values,
+                backgroundColor: level === 'hours' ? 'rgba(0, 0, 0, 0.1)' : 'rgba(0, 0, 0, 0.7)',
+                borderColor: '#000',
+                borderWidth: level === 'hours' ? 2 : 1,
+                fill: level === 'hours',
+                tension: level === 'hours' ? 0.4 : 0,
+                pointBackgroundColor: level === 'hours' ? '#000' : undefined,
+                pointBorderColor: level === 'hours' ? '#f4e8d4' : undefined,
+                pointBorderWidth: level === 'hours' ? 2 : undefined,
+                pointRadius: level === 'hours' ? 4 : undefined,
+                pointHoverRadius: level === 'hours' ? 6 : undefined
+              }]
+            },
+            options: {
+              indexAxis: indexAxis,
+              responsive: true,
+              maintainAspectRatio: true,
+              onClick: async function(event, elements) {
+                if (elements.length > 0) {
+                  const clickedIndex = elements[0].index;
+                  const analyticsData = window.currentAnalyticsData;
+                  
+                  if (level === 'months') {
+                    // Drill down to days
+                    const selectedMonth = data.months[clickedIndex].month;
+                    await drillDownToDays(selectedMonth);
+                  } else if (level === 'days') {
+                    // Drill down to hours
+                    const selectedDay = data.days[clickedIndex].day;
+                    await drillDownToHours(selectedDay);
+                  }
+                }
+              },
+              onHover: function(event, elements) {
+                event.native.target.style.cursor = (level !== 'hours' && elements.length > 0) ? 'pointer' : 'default';
+              },
+              plugins: {
+                legend: {
+                  display: false
+                },
+                tooltip: {
+                  backgroundColor: 'rgba(244, 232, 212, 0.95)',
+                  titleColor: '#000',
+                  bodyColor: '#000',
+                  borderColor: '#000',
+                  borderWidth: 1,
+                  padding: 12,
+                  callbacks: {
+                    label: function(context) {
+                      const value = indexAxis === 'y' ? context.parsed.x : context.parsed.y;
+                      return 'Visits: ' + value;
+                    },
+                    afterTitle: function(context) {
+                      if (level !== 'hours') {
+                        return 'Click to drill down';
+                      }
+                      return '';
+                    }
+                  }
+                }
+              },
+              scales: {
+                x: {
+                  beginAtZero: true,
+                  ticks: {
+                    color: '#000',
+                    font: {
+                      family: "'EB Garamond', serif",
+                      size: indexAxis === 'x' ? 11 : 12
+                    },
+                    maxRotation: indexAxis === 'x' ? 45 : 0,
+                    minRotation: indexAxis === 'x' ? 45 : 0
+                  },
+                  grid: {
+                    color: 'rgba(0, 0, 0, 0.1)'
+                  }
+                },
+                y: {
+                  beginAtZero: true,
+                  ticks: {
+                    color: '#000',
+                    font: {
+                      family: "'EB Garamond', serif",
+                      size: 12
+                    },
+                    stepSize: level === 'hours' ? undefined : 1
+                  },
+                  grid: {
+                    color: indexAxis === 'x' ? 'rgba(0, 0, 0, 0.1)' : 'rgba(0, 0, 0, 0.1)',
+                    display: indexAxis === 'y' ? false : true
+                  }
+                }
+              }
+            }
+          };
+
+          window.timelineChartInstance = new Chart(ctx, chartConfig);
+        }
+
+        // Drill down to days for a selected month
+        async function drillDownToDays(month) {
+          const analyticsData = window.currentAnalyticsData;
+          if (!analyticsData || !analyticsData.token) {
+            console.error('Analytics data not available');
+            return;
+          }
+
+          try {
+            const period = analyticsData.period || '7d';
+            const response = await fetch(`/api/analytics-data?metric=timeline&period=${period}&month=${month}`, {
+              headers: { 'Authorization': `Bearer ${analyticsData.token}` }
+            });
+
+            if (response.ok) {
+              const data = await response.json();
+              renderTimelineChart(data, 'days', month, null);
+            } else {
+              console.error('Failed to fetch days data');
+            }
+          } catch (error) {
+            console.error('Error drilling down to days:', error);
+          }
+        }
+
+        // Drill down to hours for a selected day
+        async function drillDownToHours(day) {
+          const analyticsData = window.currentAnalyticsData;
+          if (!analyticsData || !analyticsData.token) {
+            console.error('Analytics data not available');
+            return;
+          }
+
+          try {
+            const period = analyticsData.period || '7d';
+            // Extract month from day (YYYY-MM-DD -> YYYY-MM)
+            const month = day.substring(0, 7);
+            const response = await fetch(`/api/analytics-data?metric=timeline&period=${period}&month=${month}&day=${day}`, {
+              headers: { 'Authorization': `Bearer ${analyticsData.token}` }
+            });
+
+            if (response.ok) {
+              const data = await response.json();
+              renderTimelineChart(data, 'hours', month, day);
+            } else {
+              console.error('Failed to fetch hours data');
+            }
+          } catch (error) {
+            console.error('Error drilling down to hours:', error);
+          }
+        }
+
+        // Go back in timeline hierarchy
+        async function goBackTimeline() {
+          const state = window.timelineState;
+          const analyticsData = window.currentAnalyticsData;
+          
+          if (state.level === 'days') {
+            // Go back to months - reload original timeline data
+            if (window.originalTimelineData) {
+              renderTimelineChart(window.originalTimelineData, 'months');
+            } else if (analyticsData && analyticsData.timeline) {
+              renderTimelineChart(analyticsData.timeline, 'months');
+            } else {
+              // Reload from API
+              try {
+                const period = analyticsData.period || '7d';
+                const token = analyticsData.token;
+                const response = await fetch(`/api/analytics-data?metric=timeline&period=${period}`, {
+                  headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (response.ok) {
+                  const data = await response.json();
+                  window.originalTimelineData = data;
+                  renderTimelineChart(data, 'months');
+                }
+              } catch (error) {
+                console.error('Error reloading timeline:', error);
+              }
+            }
+          } else if (state.level === 'hours') {
+            // Go back to days
+            if (state.selectedMonth) {
+              await drillDownToDays(state.selectedMonth);
+            }
           }
         }
       </script>
