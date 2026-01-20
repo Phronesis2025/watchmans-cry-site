@@ -13,6 +13,7 @@
   "routes": [
     { "src": "/api/track", "dest": "/api/track.js", "methods": ["POST", "OPTIONS"] },
     { "src": "/api/analytics-data", "dest": "/api/analytics-data.js", "methods": ["GET", "OPTIONS"] },
+    { "src": "/api/reset-analytics", "dest": "/api/reset-analytics.js", "methods": ["POST", "OPTIONS"] },
     { "src": "/prelaunch", "dest": "/prelaunch.html" },
     { "src": "/", "dest": "/index.html" },
     { "src": "/(.*)", "dest": "/$1" }

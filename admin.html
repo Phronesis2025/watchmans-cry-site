@@ -98,6 +98,17 @@
           return div.innerHTML;
         }
 
+        // Helper: Format seconds to "Xm Ys" format
+        function formatTime(seconds) {
+          if (!seconds || seconds === 0) return '0s';
+          const minutes = Math.floor(seconds / 60);
+          const secs = seconds % 60;
+          if (minutes > 0) {
+            return `${minutes}m ${secs}s`;
+          }
+          return `${secs}s`;
+        }
+
         // Convert page path to common name
         function getPageName(path) {
           const pageNames = {
@@ -296,7 +307,7 @@
             const period = periodSelect ? periodSelect.value : '7d';
             const token = session.access_token;
 
-            const [pageviewsRes, visitorsRes, devicesRes, geographyRes, timeonpageRes, hourlyRes, timelineRes] = await Promise.all([
+            const [pageviewsRes, visitorsRes, devicesRes, geographyRes, timeonpageRes, hourlyRes, timelineRes, growthRes, engagementRes, sourcesRes, contentRes, journeyRes] = await Promise.all([
               fetch(`/api/analytics-data?metric=pageviews&period=${period}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
               }).then(r => r.ok ? r.json() : null).catch(() => null),
@@ -317,40 +328,114 @@
               }).then(r => r.ok ? r.json() : null).catch(() => null),
               fetch(`/api/analytics-data?metric=timeline&period=${period}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
+              }).then(r => r.ok ? r.json() : null).catch(() => null),
+              fetch(`/api/analytics-data?metric=growth&period=${period}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+              }).then(r => r.ok ? r.json() : null).catch(() => null),
+              fetch(`/api/analytics-data?metric=engagement&period=${period}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+              }).then(r => r.ok ? r.json() : null).catch(() => null),
+              fetch(`/api/analytics-data?metric=sources&period=${period}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+              }).then(r => r.ok ? r.json() : null).catch(() => null),
+              fetch(`/api/analytics-data?metric=content&period=${period}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+              }).then(r => r.ok ? r.json() : null).catch(() => null),
+              fetch(`/api/analytics-data?metric=journey&period=${period}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
               }).then(r => r.ok ? r.json() : null).catch(() => null)
             ]);
 
             let html = `
               <p><strong>Site Analytics</strong></p>
-              <div style="margin-bottom: 1em;">
-                <label style="font-weight: 700; margin-right: 0.5em;">Time Period:</label>
-                <select id="analytics-period" onchange="loadSiteMetrics()" style="padding: 0.25em; border: 1px solid #000; font-family: 'EB Garamond', serif;">
-                  <option value="7d" ${period === '7d' ? 'selected' : ''}>Last 7 days</option>
-                  <option value="30d" ${period === '30d' ? 'selected' : ''}>Last 30 days</option>
-                  <option value="all" ${period === 'all' ? 'selected' : ''}>All time</option>
-                </select>
-                <button onclick="loadSiteMetrics()" style="margin-left: 0.5em; padding: 0.25em 0.75em; background-color: #000; color: #f4e8d4; border: none; font-family: 'EB Garamond', serif; cursor: pointer;">Refresh</button>
+              <div style="margin-bottom: 1em; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5em;">
+                <div>
+                  <label style="font-weight: 700; margin-right: 0.5em;">Time Period:</label>
+                  <select id="analytics-period" onchange="loadSiteMetrics()" style="padding: 0.25em; border: 1px solid #000; font-family: 'EB Garamond', serif;">
+                    <option value="7d" ${period === '7d' ? 'selected' : ''}>Last 7 days</option>
+                    <option value="30d" ${period === '30d' ? 'selected' : ''}>Last 30 days</option>
+                    <option value="all" ${period === 'all' ? 'selected' : ''}>All time</option>
+                  </select>
+                  <button onclick="loadSiteMetrics()" style="margin-left: 0.5em; padding: 0.25em 0.75em; background-color: #000; color: #f4e8d4; border: none; font-family: 'EB Garamond', serif; cursor: pointer;">Refresh</button>
+                </div>
+                <button onclick="resetAnalyticsData()" style="padding: 0.25em 0.75em; background-color: #8b0000; color: #f4e8d4; border: 1px solid #8b0000; font-family: 'EB Garamond', serif; cursor: pointer; font-size: 0.9em;" title="Delete all analytics data and start fresh">Reset All Data</button>
               </div>
               
-              <!-- Overview Cards -->
-              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1em; margin-bottom: 2em;">
+              <!-- Enhanced KPI Cards with Trends -->
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1em; margin-bottom: 2em;">
+                <!-- Page Views Card with Growth -->
                 <div style="padding: 1em; background-color: rgba(244, 232, 212, 0.3); border: 1px solid #000; text-align: center;">
                   <p style="font-size: 0.9em; color: #666; margin-bottom: 0.5em;">Total Page Views</p>
                   <p style="font-size: 2em; font-weight: 700; margin: 0;">${pageviewsRes?.total || 0}</p>
+                  ${growthRes?.pageviews ? `
+                    <p style="font-size: 0.85em; margin-top: 0.5em; color: ${growthRes.pageviews.change > 0 ? '#006400' : growthRes.pageviews.change < 0 ? '#8b0000' : '#666'};">
+                      ${growthRes.pageviews.change > 0 ? '↗️' : growthRes.pageviews.change < 0 ? '↘️' : '→'} 
+                      ${Math.abs(growthRes.pageviews.change)}% vs previous period
+                    </p>
+                    <p style="font-size: 0.75em; color: #666; margin-top: 0.25em;">Trend: ${growthRes.pageviews.trend === 'up' ? 'Growing' : growthRes.pageviews.trend === 'down' ? 'Declining' : 'Stable'}</p>
+                  ` : ''}
                 </div>
+                
+                <!-- Unique Visitors Card with Return Rate -->
                 <div style="padding: 1em; background-color: rgba(244, 232, 212, 0.3); border: 1px solid #000; text-align: center;">
                   <p style="font-size: 0.9em; color: #666; margin-bottom: 0.5em;">Unique Visitors</p>
                   <p style="font-size: 2em; font-weight: 700; margin: 0;">${visitorsRes?.unique_visitors || 0}</p>
+                  ${growthRes?.visitors ? `
+                    <p style="font-size: 0.85em; margin-top: 0.5em; color: ${growthRes.visitors.change > 0 ? '#006400' : growthRes.visitors.change < 0 ? '#8b0000' : '#666'};">
+                      ${growthRes.visitors.change > 0 ? '↗️' : growthRes.visitors.change < 0 ? '↘️' : '→'} 
+                      ${Math.abs(growthRes.visitors.change)}% vs previous
+                    </p>
+                  ` : ''}
+                  ${engagementRes?.return_rate !== undefined ? `
+                    <p style="font-size: 0.75em; color: #666; margin-top: 0.25em;">${engagementRes.return_rate}% returning</p>
+                  ` : ''}
                 </div>
+                
+                <!-- Engagement Card (New) -->
                 <div style="padding: 1em; background-color: rgba(244, 232, 212, 0.3); border: 1px solid #000; text-align: center;">
-                  <p style="font-size: 0.9em; color: #666; margin-bottom: 0.5em;">New Visitors</p>
-                  <p style="font-size: 2em; font-weight: 700; margin: 0;">${visitorsRes?.new_visitors || 0}</p>
+                  <p style="font-size: 0.9em; color: #666; margin-bottom: 0.5em;">Engagement Quality</p>
+                  ${engagementRes ? `
+                    <p style="font-size: 1.5em; font-weight: 700; margin: 0; color: ${engagementRes.bounce_rate < 50 ? '#006400' : engagementRes.bounce_rate < 70 ? '#8b4513' : '#8b0000'};">
+                      ${engagementRes.bounce_rate}% bounce
+                    </p>
+                    <p style="font-size: 0.75em; color: #666; margin-top: 0.25em;">
+                      ${engagementRes.pages_per_session?.average || 0} pages/session
+                    </p>
+                  ` : '<p style="font-size: 1.5em; font-weight: 700; margin: 0;">-</p>'}
                 </div>
+                
+                <!-- Time on Page Card Enhanced -->
                 <div style="padding: 1em; background-color: rgba(244, 232, 212, 0.3); border: 1px solid #000; text-align: center;">
                   <p style="font-size: 0.9em; color: #666; margin-bottom: 0.5em;">Avg. Time on Page</p>
-                  <p style="font-size: 2em; font-weight: 700; margin: 0;">${timeonpageRes?.overall_average || 0}s</p>
+                  ${timeonpageRes?.overall_average ? `
+                    <p style="font-size: 2em; font-weight: 700; margin: 0;">
+                      ${Math.floor(timeonpageRes.overall_average / 60)}m ${timeonpageRes.overall_average % 60}s
+                    </p>
+                  ` : '<p style="font-size: 2em; font-weight: 700; margin: 0;">0s</p>'}
+                  ${growthRes?.time_on_page ? `
+                    <p style="font-size: 0.85em; margin-top: 0.5em; color: ${growthRes.time_on_page.change > 0 ? '#006400' : growthRes.time_on_page.change < 0 ? '#8b0000' : '#666'};">
+                      ${growthRes.time_on_page.change > 0 ? '↗️' : growthRes.time_on_page.change < 0 ? '↘️' : '→'} 
+                      ${Math.abs(growthRes.time_on_page.change)}%
+                    </p>
+                  ` : ''}
+                  ${engagementRes?.time_distribution ? `
+                    <p style="font-size: 0.75em; color: #666; margin-top: 0.25em;">
+                      ${Math.round(((engagementRes.time_distribution['2-5min'] + engagementRes.time_distribution['5min+']) / 
+                        (engagementRes.time_distribution['0-30s'] + engagementRes.time_distribution['30s-1min'] + 
+                         engagementRes.time_distribution['1-2min'] + engagementRes.time_distribution['2-5min'] + 
+                         engagementRes.time_distribution['5min+']) * 100) || 0)}% read 2+ min
+                    </p>
+                  ` : ''}
                 </div>
               </div>
+
+              <!-- Traffic Trend Chart (Daily with Comparison) -->
+              ${pageviewsRes?.daily?.length > 0 ? `
+              <div style="margin-bottom: 2em; padding: 1em; background-color: rgba(244, 232, 212, 0.3); border: 1px solid #000;">
+                <h4 style="margin-top: 0; margin-bottom: 1em;">Traffic Trend (Daily Page Views)</h4>
+                <canvas id="trafficTrendChart" style="max-height: 300px;"></canvas>
+              </div>
+              ` : ''}
 
               <!-- Visitor Timeline Chart (Month -> Day -> Hour) -->
               ${timelineRes?.months?.length > 0 ? `
@@ -363,6 +448,176 @@
                   </div>
                 </div>
                 <canvas id="timelineChart" style="max-height: 400px;"></canvas>
+                ${timelineRes?.peak_day || timelineRes?.peak_hour ? `
+                <div style="margin-top: 1em; font-size: 0.9em; color: #666;">
+                  ${timelineRes.peak_day ? `<p style="margin: 0.25em 0;"><strong>Peak Day:</strong> ${timelineRes.peak_day.day} (${timelineRes.peak_day.count} visits)</p>` : ''}
+                  ${timelineRes.peak_hour ? `<p style="margin: 0.25em 0;"><strong>Peak Hour:</strong> ${timelineRes.peak_hour.label} (${timelineRes.peak_hour.count} visits)</p>` : ''}
+                </div>
+                ` : ''}
+              </div>
+              ` : ''}
+
+              <!-- Day of Week Analysis -->
+              ${timelineRes?.day_of_week?.length > 0 ? `
+              <div style="margin-bottom: 2em; padding: 1em; background-color: rgba(244, 232, 212, 0.3); border: 1px solid #000;">
+                <h4 style="margin-top: 0; margin-bottom: 1em;">Traffic by Day of Week</h4>
+                <canvas id="dayOfWeekChart" style="max-height: 300px;"></canvas>
+              </div>
+              ` : ''}
+
+              <!-- Engagement Distribution Charts -->
+              ${engagementRes ? `
+              <div style="margin-bottom: 2em; padding: 1em; background-color: rgba(244, 232, 212, 0.3); border: 1px solid #000;">
+                <h4 style="margin-top: 0; margin-bottom: 1em;">Engagement Quality Metrics</h4>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1em; margin-bottom: 1em;">
+                  <div>
+                    <h5 style="margin-top: 0; margin-bottom: 0.5em; font-size: 1em;">Time on Page Distribution</h5>
+                    <canvas id="timeDistributionChart" style="max-height: 250px;"></canvas>
+                  </div>
+                  <div>
+                    <h5 style="margin-top: 0; margin-bottom: 0.5em; font-size: 1em;">Pages per Session</h5>
+                    <canvas id="pagesPerSessionChart" style="max-height: 250px;"></canvas>
+                  </div>
+                </div>
+                <div style="margin-top: 1em; padding: 1em; background-color: rgba(255, 255, 255, 0.2); border: 1px solid #000;">
+                  <p style="margin: 0.25em 0;"><strong>Bounce Rate:</strong> ${engagementRes.bounce_rate}% ${engagementRes.bounce_rate < 50 ? '(Good)' : engagementRes.bounce_rate < 70 ? '(Fair)' : '(Needs Improvement)'}</p>
+                  <p style="margin: 0.25em 0;"><strong>Return Visitor Rate:</strong> ${engagementRes.return_rate}%</p>
+                  <p style="margin: 0.25em 0;"><strong>Avg Session Duration:</strong> ${Math.floor((engagementRes.session_duration?.average || 0) / 60)}m ${(engagementRes.session_duration?.average || 0) % 60}s</p>
+                </div>
+              </div>
+              ` : ''}
+
+              <!-- Traffic Sources -->
+              ${sourcesRes?.categories?.length > 0 ? `
+              <div style="margin-bottom: 2em; padding: 1em; background-color: rgba(244, 232, 212, 0.3); border: 1px solid #000;">
+                <h4 style="margin-top: 0; margin-bottom: 1em;">Traffic Sources</h4>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1em; margin-bottom: 1em;">
+                  <div>
+                    <canvas id="sourcesPieChart" style="max-height: 300px;"></canvas>
+                  </div>
+                  <div>
+                    <h5 style="margin-top: 0; margin-bottom: 0.5em; font-size: 1em;">Top Referrers</h5>
+                    <table style="width: 100%; border-collapse: collapse; font-size: 0.9em;">
+                      <thead>
+                        <tr style="border-bottom: 2px solid #000;">
+                          <th style="padding: 0.5em; text-align: left; font-weight: 700;">Source</th>
+                          <th style="padding: 0.5em; text-align: right; font-weight: 700;">Visits</th>
+                          <th style="padding: 0.5em; text-align: right; font-weight: 700;">Bounce</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        ${sourcesRes.top_referrers?.slice(0, 5).map(ref => `
+                          <tr style="border-bottom: 1px solid #ccc;">
+                            <td style="padding: 0.5em;">${escapeHtml(ref.domain)}</td>
+                            <td style="padding: 0.5em; text-align: right;">${ref.count}</td>
+                            <td style="padding: 0.5em; text-align: right; color: ${ref.bounce_rate < 50 ? '#006400' : ref.bounce_rate < 70 ? '#8b4513' : '#8b0000'};">${ref.bounce_rate}%</td>
+                          </tr>
+                        `).join('') || '<tr><td colspan="3" style="padding: 0.5em; text-align: center; color: #666;">No referrer data</td></tr>'}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+              ` : ''}
+
+              <!-- Content Performance -->
+              ${contentRes?.top_pages?.length > 0 ? `
+              <div style="margin-bottom: 2em; padding: 1em; background-color: rgba(244, 232, 212, 0.3); border: 1px solid #000;">
+                <h4 style="margin-top: 0; margin-bottom: 1em;">Content Performance (Ranked by Engagement)</h4>
+                <table style="width: 100%; border-collapse: collapse;">
+                  <thead>
+                    <tr style="border-bottom: 2px solid #000; background-color: rgba(244, 232, 212, 0.5);">
+                      <th style="padding: 0.75em; text-align: left; font-weight: 700;">Page</th>
+                      <th style="padding: 0.75em; text-align: right; font-weight: 700;">Views</th>
+                      <th style="padding: 0.75em; text-align: right; font-weight: 700;">Avg Time</th>
+                      <th style="padding: 0.75em; text-align: right; font-weight: 700;">Bounce</th>
+                      <th style="padding: 0.75em; text-align: right; font-weight: 700;">Score</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${contentRes.top_pages.slice(0, 10).map((page, idx) => `
+                      <tr style="border-bottom: 1px solid #ccc; ${idx < 3 ? 'background-color: rgba(0, 100, 0, 0.1);' : ''}">
+                        <td style="padding: 0.75em;">${escapeHtml(getPageName(page.path))}</td>
+                        <td style="padding: 0.75em; text-align: right;">${page.views}</td>
+                        <td style="padding: 0.75em; text-align: right;">${Math.floor(page.avg_time / 60)}m ${page.avg_time % 60}s</td>
+                        <td style="padding: 0.75em; text-align: right; color: ${page.bounce_rate < 50 ? '#006400' : page.bounce_rate < 70 ? '#8b4513' : '#8b0000'};">${page.bounce_rate}%</td>
+                        <td style="padding: 0.75em; text-align: right; font-weight: 700;">${page.engagement_score}</td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+                ${contentRes.editions?.length > 0 ? `
+                <div style="margin-top: 2em;">
+                  <h5 style="margin-top: 0; margin-bottom: 0.5em; font-size: 1em;">Archive Edition Performance</h5>
+                  <table style="width: 100%; border-collapse: collapse; font-size: 0.9em;">
+                    <thead>
+                      <tr style="border-bottom: 2px solid #000;">
+                        <th style="padding: 0.5em; text-align: left; font-weight: 700;">Edition</th>
+                        <th style="padding: 0.5em; text-align: right; font-weight: 700;">Views</th>
+                        <th style="padding: 0.5em; text-align: right; font-weight: 700;">Avg Time</th>
+                        <th style="padding: 0.5em; text-align: right; font-weight: 700;">Bounce</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${contentRes.editions.slice(0, 5).map(edition => `
+                        <tr style="border-bottom: 1px solid #ccc;">
+                          <td style="padding: 0.5em;">${edition.date}</td>
+                          <td style="padding: 0.5em; text-align: right;">${edition.views}</td>
+                          <td style="padding: 0.5em; text-align: right;">${Math.floor(edition.avg_time / 60)}m ${edition.avg_time % 60}s</td>
+                          <td style="padding: 0.5em; text-align: right; color: ${edition.bounce_rate < 50 ? '#006400' : edition.bounce_rate < 70 ? '#8b4513' : '#8b0000'};">${edition.bounce_rate}%</td>
+                        </tr>
+                      `).join('')}
+                    </tbody>
+                  </table>
+                </div>
+                ` : ''}
+              </div>
+              ` : ''}
+
+              <!-- User Journey -->
+              ${journeyRes?.entry_pages?.length > 0 || journeyRes?.exit_pages?.length > 0 ? `
+              <div style="margin-bottom: 2em; padding: 1em; background-color: rgba(244, 232, 212, 0.3); border: 1px solid #000;">
+                <h4 style="margin-top: 0; margin-bottom: 1em;">User Journey</h4>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1em;">
+                  <div>
+                    <h5 style="margin-top: 0; margin-bottom: 0.5em; font-size: 1em;">Entry Pages (Where Users Land)</h5>
+                    <table style="width: 100%; border-collapse: collapse; font-size: 0.9em;">
+                      <thead>
+                        <tr style="border-bottom: 2px solid #000;">
+                          <th style="padding: 0.5em; text-align: left; font-weight: 700;">Page</th>
+                          <th style="padding: 0.5em; text-align: right; font-weight: 700;">%</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        ${journeyRes.entry_pages.slice(0, 5).map(entry => `
+                          <tr style="border-bottom: 1px solid #ccc;">
+                            <td style="padding: 0.5em;">${escapeHtml(getPageName(entry.path))}</td>
+                            <td style="padding: 0.5em; text-align: right;">${entry.percentage}%</td>
+                          </tr>
+                        `).join('')}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div>
+                    <h5 style="margin-top: 0; margin-bottom: 0.5em; font-size: 1em;">Exit Pages (Where Users Leave)</h5>
+                    <table style="width: 100%; border-collapse: collapse; font-size: 0.9em;">
+                      <thead>
+                        <tr style="border-bottom: 2px solid #000;">
+                          <th style="padding: 0.5em; text-align: left; font-weight: 700;">Page</th>
+                          <th style="padding: 0.5em; text-align: right; font-weight: 700;">Exit Rate</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        ${journeyRes.exit_rates?.slice(0, 5).map(exit => `
+                          <tr style="border-bottom: 1px solid #ccc;">
+                            <td style="padding: 0.5em;">${escapeHtml(getPageName(exit.path))}</td>
+                            <td style="padding: 0.5em; text-align: right; color: ${exit.exit_rate > 70 ? '#8b0000' : exit.exit_rate > 50 ? '#8b4513' : '#006400'};">${exit.exit_rate}%</td>
+                          </tr>
+                        `).join('') || '<tr><td colspan="2" style="padding: 0.5em; text-align: center; color: #666;">No exit data</td></tr>'}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               </div>
               ` : ''}
 
@@ -435,6 +690,11 @@
               hourly: hourlyRes?.hourly || [],
               timeOnPage: timeonpageRes?.by_page || [],
               timeline: timelineRes || null,
+              growth: growthRes || null,
+              engagement: engagementRes || null,
+              sources: sourcesRes || null,
+              content: contentRes || null,
+              journey: journeyRes || null,
               period: period,
               token: token
             };
@@ -448,8 +708,23 @@
             window.originalTimelineData = timelineRes || null;
             
             // Render charts after HTML is inserted (in order)
+            if (pageviewsRes?.daily?.length > 0) {
+              renderTrafficTrendChart(pageviewsRes.daily);
+            }
             if (timelineRes?.months?.length > 0) {
               renderTimelineChart(timelineRes, 'months');
+            }
+            if (timelineRes?.day_of_week?.length > 0) {
+              renderDayOfWeekChart(timelineRes.day_of_week);
+            }
+            if (engagementRes?.time_distribution) {
+              renderTimeDistributionChart(engagementRes.time_distribution);
+            }
+            if (engagementRes?.pages_per_session?.distribution) {
+              renderPagesPerSessionChart(engagementRes.pages_per_session.distribution);
+            }
+            if (sourcesRes?.categories?.length > 0) {
+              renderSourcesPieChart(sourcesRes.categories);
             }
             if (hourlyRes?.hourly?.length > 0) {
               renderHourlyViewsChart(hourlyRes.hourly);
@@ -1066,6 +1341,439 @@
             if (state.selectedMonth) {
               await drillDownToDays(state.selectedMonth);
             }
+          }
+        }
+
+        // Render Traffic Trend Chart (Daily with comparison)
+        function renderTrafficTrendChart(dailyData) {
+          if (window.trafficTrendChartInstance) {
+            window.trafficTrendChartInstance.destroy();
+          }
+
+          const ctx = document.getElementById('trafficTrendChart');
+          if (!ctx) return;
+
+          // Format dates for labels
+          const labels = dailyData.map(item => {
+            const date = new Date(item.date);
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+          });
+          const values = dailyData.map(item => item.count);
+
+          window.trafficTrendChartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+              labels: labels,
+              datasets: [{
+                label: 'Page Views',
+                data: values,
+                borderColor: '#000',
+                backgroundColor: 'rgba(0, 0, 0, 0.1)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4,
+                pointBackgroundColor: '#000',
+                pointBorderColor: '#f4e8d4',
+                pointBorderWidth: 2,
+                pointRadius: 3,
+                pointHoverRadius: 5
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: true,
+              plugins: {
+                legend: {
+                  display: false
+                },
+                tooltip: {
+                  backgroundColor: 'rgba(244, 232, 212, 0.95)',
+                  titleColor: '#000',
+                  bodyColor: '#000',
+                  borderColor: '#000',
+                  borderWidth: 1,
+                  padding: 12
+                }
+              },
+              scales: {
+                x: {
+                  ticks: {
+                    color: '#000',
+                    font: {
+                      family: "'EB Garamond', serif",
+                      size: 11
+                    },
+                    maxRotation: 45,
+                    minRotation: 45
+                  },
+                  grid: {
+                    color: 'rgba(0, 0, 0, 0.1)'
+                  }
+                },
+                y: {
+                  beginAtZero: true,
+                  ticks: {
+                    color: '#000',
+                    font: {
+                      family: "'EB Garamond', serif",
+                      size: 12
+                    },
+                    stepSize: 1
+                  },
+                  grid: {
+                    color: 'rgba(0, 0, 0, 0.1)'
+                  }
+                }
+              }
+            }
+          });
+        }
+
+        // Render Day of Week Chart
+        function renderDayOfWeekChart(dayData) {
+          if (window.dayOfWeekChartInstance) {
+            window.dayOfWeekChartInstance.destroy();
+          }
+
+          const ctx = document.getElementById('dayOfWeekChart');
+          if (!ctx) return;
+
+          const labels = dayData.map(d => d.day);
+          const values = dayData.map(d => d.count);
+
+          window.dayOfWeekChartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+              labels: labels,
+              datasets: [{
+                label: 'Visits',
+                data: values,
+                backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                borderColor: '#000',
+                borderWidth: 1
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: true,
+              plugins: {
+                legend: {
+                  display: false
+                },
+                tooltip: {
+                  backgroundColor: 'rgba(244, 232, 212, 0.95)',
+                  titleColor: '#000',
+                  bodyColor: '#000',
+                  borderColor: '#000',
+                  borderWidth: 1,
+                  padding: 12
+                }
+              },
+              scales: {
+                x: {
+                  ticks: {
+                    color: '#000',
+                    font: {
+                      family: "'EB Garamond', serif",
+                      size: 12
+                    }
+                  },
+                  grid: {
+                    display: false
+                  }
+                },
+                y: {
+                  beginAtZero: true,
+                  ticks: {
+                    color: '#000',
+                    font: {
+                      family: "'EB Garamond', serif",
+                      size: 12
+                    },
+                    stepSize: 1
+                  },
+                  grid: {
+                    color: 'rgba(0, 0, 0, 0.1)'
+                  }
+                }
+              }
+            }
+          });
+        }
+
+        // Render Time Distribution Chart
+        function renderTimeDistributionChart(distribution) {
+          if (window.timeDistributionChartInstance) {
+            window.timeDistributionChartInstance.destroy();
+          }
+
+          const ctx = document.getElementById('timeDistributionChart');
+          if (!ctx) return;
+
+          const labels = Object.keys(distribution);
+          const values = Object.values(distribution);
+          const total = values.reduce((a, b) => a + b, 0);
+          const percentages = values.map(v => total > 0 ? Math.round((v / total) * 100) : 0);
+
+          window.timeDistributionChartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+              labels: labels,
+              datasets: [{
+                label: 'Visitors',
+                data: percentages,
+                backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                borderColor: '#000',
+                borderWidth: 1
+              }]
+            },
+            options: {
+              indexAxis: 'y',
+              responsive: true,
+              maintainAspectRatio: true,
+              plugins: {
+                legend: {
+                  display: false
+                },
+                tooltip: {
+                  backgroundColor: 'rgba(244, 232, 212, 0.95)',
+                  titleColor: '#000',
+                  bodyColor: '#000',
+                  borderColor: '#000',
+                  borderWidth: 1,
+                  padding: 12,
+                  callbacks: {
+                    label: function(context) {
+                      const index = context.dataIndex;
+                      return `${percentages[index]}% (${values[index]} visitors)`;
+                    }
+                  }
+                }
+              },
+              scales: {
+                x: {
+                  beginAtZero: true,
+                  max: 100,
+                  ticks: {
+                    color: '#000',
+                    font: {
+                      family: "'EB Garamond', serif",
+                      size: 11
+                    },
+                    callback: function(value) {
+                      return value + '%';
+                    }
+                  },
+                  grid: {
+                    color: 'rgba(0, 0, 0, 0.1)'
+                  }
+                },
+                y: {
+                  ticks: {
+                    color: '#000',
+                    font: {
+                      family: "'EB Garamond', serif",
+                      size: 11
+                    }
+                  },
+                  grid: {
+                    display: false
+                  }
+                }
+              }
+            }
+          });
+        }
+
+        // Render Pages per Session Chart
+        function renderPagesPerSessionChart(distribution) {
+          if (window.pagesPerSessionChartInstance) {
+            window.pagesPerSessionChartInstance.destroy();
+          }
+
+          const ctx = document.getElementById('pagesPerSessionChart');
+          if (!ctx) return;
+
+          const labels = Object.keys(distribution);
+          const values = Object.values(distribution);
+          const total = values.reduce((a, b) => a + b, 0);
+          const percentages = values.map(v => total > 0 ? Math.round((v / total) * 100) : 0);
+
+          window.pagesPerSessionChartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+              labels: labels.map(l => l === '1' ? '1 page' : l === '2-3' ? '2-3 pages' : l === '4-5' ? '4-5 pages' : '6+ pages'),
+              datasets: [{
+                label: 'Sessions',
+                data: percentages,
+                backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                borderColor: '#000',
+                borderWidth: 1
+              }]
+            },
+            options: {
+              indexAxis: 'y',
+              responsive: true,
+              maintainAspectRatio: true,
+              plugins: {
+                legend: {
+                  display: false
+                },
+                tooltip: {
+                  backgroundColor: 'rgba(244, 232, 212, 0.95)',
+                  titleColor: '#000',
+                  bodyColor: '#000',
+                  borderColor: '#000',
+                  borderWidth: 1,
+                  padding: 12,
+                  callbacks: {
+                    label: function(context) {
+                      const index = context.dataIndex;
+                      return `${percentages[index]}% (${values[index]} sessions)`;
+                    }
+                  }
+                }
+              },
+              scales: {
+                x: {
+                  beginAtZero: true,
+                  max: 100,
+                  ticks: {
+                    color: '#000',
+                    font: {
+                      family: "'EB Garamond', serif",
+                      size: 11
+                    },
+                    callback: function(value) {
+                      return value + '%';
+                    }
+                  },
+                  grid: {
+                    color: 'rgba(0, 0, 0, 0.1)'
+                  }
+                },
+                y: {
+                  ticks: {
+                    color: '#000',
+                    font: {
+                      family: "'EB Garamond', serif",
+                      size: 11
+                    }
+                  },
+                  grid: {
+                    display: false
+                  }
+                }
+              }
+            }
+          });
+        }
+
+        // Render Traffic Sources Pie Chart
+        function renderSourcesPieChart(categories) {
+          if (window.sourcesPieChartInstance) {
+            window.sourcesPieChartInstance.destroy();
+          }
+
+          const ctx = document.getElementById('sourcesPieChart');
+          if (!ctx) return;
+
+          const labels = categories.map(c => c.name);
+          const values = categories.map(c => c.count);
+          const colors = ['#000', '#333', '#666', '#999'];
+
+          window.sourcesPieChartInstance = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+              labels: labels,
+              datasets: [{
+                data: values,
+                backgroundColor: [
+                  'rgba(0, 0, 0, 0.8)',
+                  'rgba(0, 0, 0, 0.6)',
+                  'rgba(0, 0, 0, 0.4)',
+                  'rgba(0, 0, 0, 0.2)'
+                ],
+                borderColor: '#000',
+                borderWidth: 2
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: true,
+              plugins: {
+                legend: {
+                  position: 'bottom',
+                  labels: {
+                    color: '#000',
+                    font: {
+                      family: "'EB Garamond', serif",
+                      size: 12
+                    },
+                    padding: 15
+                  }
+                },
+                tooltip: {
+                  backgroundColor: 'rgba(244, 232, 212, 0.95)',
+                  titleColor: '#000',
+                  bodyColor: '#000',
+                  borderColor: '#000',
+                  borderWidth: 1,
+                  padding: 12,
+                  callbacks: {
+                    label: function(context) {
+                      const label = context.label || '';
+                      const value = context.parsed || 0;
+                      const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                      const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
+                      const category = categories.find(c => c.name === label);
+                      return `${label}: ${value} (${percentage}%) | Bounce: ${category?.bounce_rate || 0}%`;
+                    }
+                  }
+                }
+              }
+            }
+          });
+        }
+
+        // Reset all analytics data
+        async function resetAnalyticsData() {
+          if (!confirm('Are you sure you want to delete ALL analytics data? This cannot be undone.')) {
+            return;
+          }
+
+          if (!confirm('This will permanently delete all page views, visitor sessions, and rate limit data. Continue?')) {
+            return;
+          }
+
+          try {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session) {
+              alert('Please sign in to reset data.');
+              return;
+            }
+
+            const token = session.access_token;
+            const response = await fetch('/api/reset-analytics', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              }
+            });
+
+            if (response.ok) {
+              const result = await response.json();
+              alert('All analytics data has been reset successfully. The dashboard will refresh.');
+              // Reload metrics
+              loadSiteMetrics();
+            } else {
+              const error = await response.json();
+              alert('Error resetting data: ' + (error.error || 'Unknown error'));
+            }
+          } catch (error) {
+            console.error('Error resetting analytics:', error);
+            alert('Error resetting data. Check console for details.');
           }
         }
       </script>

@@ -172,9 +172,44 @@ export default async function handler(req, res) {
           .sort((a, b) => b.count - a.count)
           .slice(0, 10);
 
+        // Get daily breakdown for trend chart
+        let dailyQuery = supabase
+          .from('page_views')
+          .select('created_at');
+
+        if (dateFilter) {
+          dailyQuery = dailyQuery.gte('created_at', dateFilter);
+        }
+
+        if (excludedIPHashes.length > 0) {
+          excludedIPHashes.forEach(hash => {
+            dailyQuery = dailyQuery.neq('hashed_ip', hash);
+          });
+        }
+
+        const { data: dailyViews } = await dailyQuery;
+
+        // Group by day
+        const dailyCounts = {};
+        if (dailyViews) {
+          dailyViews.forEach(view => {
+            if (view.created_at) {
+              const date = new Date(view.created_at);
+              const dayKey = date.toISOString().split('T')[0]; // YYYY-MM-DD
+              dailyCounts[dayKey] = (dailyCounts[dayKey] || 0) + 1;
+            }
+          });
+        }
+
+        // Convert to array and sort
+        const dailyData = Object.entries(dailyCounts)
+          .map(([date, count]) => ({ date, count }))
+          .sort((a, b) => a.date.localeCompare(b.date));
+
         result = {
           total: total || 0,
-          top_pages: topPages
+          top_pages: topPages,
+          daily: dailyData
         };
         break;
       }
@@ -561,10 +596,753 @@ export default async function handler(req, res) {
           }
         }
 
+        // Day of week analysis (only if showing months or all data)
+        const dayOfWeekCounts = {
+          'Sunday': 0,
+          'Monday': 0,
+          'Tuesday': 0,
+          'Wednesday': 0,
+          'Thursday': 0,
+          'Friday': 0,
+          'Saturday': 0
+        };
+
+        if (!day && views) {
+          views.forEach(view => {
+            if (view.created_at) {
+              const cstDate = toCST(new Date(view.created_at));
+              const dayOfWeek = dayNames[cstDate.getDay()];
+              dayOfWeekCounts[dayOfWeek]++;
+            }
+          });
+        }
+
+        const dayOfWeekData = Object.entries(dayOfWeekCounts)
+          .map(([day, count]) => ({ day, count }))
+          .sort((a, b) => {
+            const order = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            return order.indexOf(a.day) - order.indexOf(b.day);
+          });
+
+        // Identify peak times
+        const peakHour = hours.length > 0
+          ? hours.reduce((max, h) => h.count > max.count ? h : max, hours[0])
+          : null;
+        const peakDay = dayOfWeekData.length > 0
+          ? dayOfWeekData.reduce((max, d) => d.count > max.count ? d : max, dayOfWeekData[0])
+          : null;
+
         result = {
           months: months,
           days: days,
-          hours: hours
+          hours: hours,
+          day_of_week: dayOfWeekData,
+          peak_hour: peakHour ? { hour: peakHour.hour, label: peakHour.label, count: peakHour.count } : null,
+          peak_day: peakDay ? { day: peakDay.day, count: peakDay.count } : null
+        };
+        break;
+      }
+
+      case 'growth': {
+        // Compare current period to previous period for growth metrics
+        const now = new Date();
+        let currentStart, currentEnd, previousStart, previousEnd;
+        
+        if (period === '7d') {
+          currentStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          currentEnd = now;
+          previousStart = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+          previousEnd = currentStart;
+        } else if (period === '30d') {
+          currentStart = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+          currentEnd = now;
+          previousStart = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
+          previousEnd = currentStart;
+        } else {
+          // For 'all', compare last 30 days to previous 30 days
+          currentStart = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+          currentEnd = now;
+          previousStart = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
+          previousEnd = currentStart;
+        }
+
+        // Get current period data
+        let currentQuery = supabase
+          .from('page_views')
+          .select('*', { count: 'exact' })
+          .gte('created_at', currentStart.toISOString())
+          .lt('created_at', currentEnd.toISOString());
+
+        let previousQuery = supabase
+          .from('page_views')
+          .select('*', { count: 'exact' })
+          .gte('created_at', previousStart.toISOString())
+          .lt('created_at', previousEnd.toISOString());
+
+        // Exclude filtered IPs
+        if (excludedIPHashes.length > 0) {
+          excludedIPHashes.forEach(hash => {
+            currentQuery = currentQuery.neq('hashed_ip', hash);
+            previousQuery = previousQuery.neq('hashed_ip', hash);
+          });
+        }
+
+        const [{ count: currentPageviews }, { count: previousPageviews }] = await Promise.all([
+          currentQuery,
+          previousQuery
+        ]);
+
+        // Get unique visitors for both periods
+        let currentVisitorsQuery = supabase
+          .from('visitor_sessions')
+          .select('hashed_ip', { count: 'exact' })
+          .gte('first_visit_at', currentStart.toISOString())
+          .lt('first_visit_at', currentEnd.toISOString());
+
+        let previousVisitorsQuery = supabase
+          .from('visitor_sessions')
+          .select('hashed_ip', { count: 'exact' })
+          .gte('first_visit_at', previousStart.toISOString())
+          .lt('first_visit_at', previousEnd.toISOString());
+
+        if (excludedIPHashes.length > 0) {
+          excludedIPHashes.forEach(hash => {
+            currentVisitorsQuery = currentVisitorsQuery.neq('hashed_ip', hash);
+            previousVisitorsQuery = previousVisitorsQuery.neq('hashed_ip', hash);
+          });
+        }
+
+        const [{ data: currentVisitorsData }, { data: previousVisitorsData }] = await Promise.all([
+          currentVisitorsQuery,
+          previousVisitorsQuery
+        ]);
+
+        const currentUniqueVisitors = new Set(currentVisitorsData?.map(v => v.hashed_ip) || []).size;
+        const previousUniqueVisitors = new Set(previousVisitorsData?.map(v => v.hashed_ip) || []).size;
+
+        // Get average time on page for both periods
+        let currentTimeQuery = supabase
+          .from('page_views')
+          .select('time_on_page')
+          .gte('created_at', currentStart.toISOString())
+          .lt('created_at', currentEnd.toISOString())
+          .not('time_on_page', 'is', null);
+
+        let previousTimeQuery = supabase
+          .from('page_views')
+          .select('time_on_page')
+          .gte('created_at', previousStart.toISOString())
+          .lt('created_at', previousEnd.toISOString())
+          .not('time_on_page', 'is', null);
+
+        if (excludedIPHashes.length > 0) {
+          excludedIPHashes.forEach(hash => {
+            currentTimeQuery = currentTimeQuery.neq('hashed_ip', hash);
+            previousTimeQuery = previousTimeQuery.neq('hashed_ip', hash);
+          });
+        }
+
+        const [{ data: currentTimeData }, { data: previousTimeData }] = await Promise.all([
+          currentTimeQuery,
+          previousTimeQuery
+        ]);
+
+        const currentAvgTime = currentTimeData && currentTimeData.length > 0
+          ? Math.round(currentTimeData.reduce((sum, item) => sum + (item.time_on_page || 0), 0) / currentTimeData.length)
+          : 0;
+        const previousAvgTime = previousTimeData && previousTimeData.length > 0
+          ? Math.round(previousTimeData.reduce((sum, item) => sum + (item.time_on_page || 0), 0) / previousTimeData.length)
+          : 0;
+
+        // Calculate percentage changes
+        const pageviewsChange = previousPageviews > 0
+          ? Math.round(((currentPageviews - previousPageviews) / previousPageviews) * 100)
+          : (currentPageviews > 0 ? 100 : 0);
+        
+        const visitorsChange = previousUniqueVisitors > 0
+          ? Math.round(((currentUniqueVisitors - previousUniqueVisitors) / previousUniqueVisitors) * 100)
+          : (currentUniqueVisitors > 0 ? 100 : 0);
+        
+        const timeChange = previousAvgTime > 0
+          ? Math.round(((currentAvgTime - previousAvgTime) / previousAvgTime) * 100)
+          : (currentAvgTime > 0 ? 100 : 0);
+
+        result = {
+          pageviews: {
+            current: currentPageviews || 0,
+            previous: previousPageviews || 0,
+            change: pageviewsChange,
+            trend: pageviewsChange > 0 ? 'up' : pageviewsChange < 0 ? 'down' : 'stable'
+          },
+          visitors: {
+            current: currentUniqueVisitors,
+            previous: previousUniqueVisitors,
+            change: visitorsChange,
+            trend: visitorsChange > 0 ? 'up' : visitorsChange < 0 ? 'down' : 'stable'
+          },
+          time_on_page: {
+            current: currentAvgTime,
+            previous: previousAvgTime,
+            change: timeChange,
+            trend: timeChange > 0 ? 'up' : timeChange < 0 ? 'down' : 'stable'
+          }
+        };
+        break;
+      }
+
+      case 'engagement': {
+        // Calculate engagement metrics: bounce rate, pages per session, session duration, return rate
+        let sessionsQuery = supabase
+          .from('visitor_sessions')
+          .select('page_count, first_visit_at, last_visit_at, is_new_visitor');
+
+        if (dateFilter) {
+          sessionsQuery = sessionsQuery.gte('first_visit_at', dateFilter);
+        }
+
+        if (excludedIPHashes.length > 0) {
+          excludedIPHashes.forEach(hash => {
+            sessionsQuery = sessionsQuery.neq('hashed_ip', hash);
+          });
+        }
+
+        const { data: sessions } = await sessionsQuery;
+
+        // Calculate bounce rate (sessions with only 1 page)
+        let bounceCount = 0;
+        let totalSessions = 0;
+        const pagesPerSession = [];
+        const sessionDurations = [];
+        let newVisitors = 0;
+        let returningVisitors = 0;
+
+        if (sessions) {
+          sessions.forEach(session => {
+            totalSessions++;
+            if (session.page_count === 1) {
+              bounceCount++;
+            }
+            pagesPerSession.push(session.page_count || 1);
+            
+            // Calculate session duration
+            if (session.first_visit_at && session.last_visit_at) {
+              const duration = Math.round((new Date(session.last_visit_at) - new Date(session.first_visit_at)) / 1000);
+              if (duration > 0) {
+                sessionDurations.push(duration);
+              }
+            }
+
+            if (session.is_new_visitor) {
+              newVisitors++;
+            } else {
+              returningVisitors++;
+            }
+          });
+        }
+
+        const bounceRate = totalSessions > 0 ? Math.round((bounceCount / totalSessions) * 100) : 0;
+        const avgPagesPerSession = pagesPerSession.length > 0
+          ? Math.round((pagesPerSession.reduce((a, b) => a + b, 0) / pagesPerSession.length) * 10) / 10
+          : 0;
+        const avgSessionDuration = sessionDurations.length > 0
+          ? Math.round(sessionDurations.reduce((a, b) => a + b, 0) / sessionDurations.length)
+          : 0;
+        const returnRate = totalSessions > 0
+          ? Math.round((returningVisitors / totalSessions) * 100)
+          : 0;
+
+        // Time distribution buckets
+        let timeQuery = supabase
+          .from('page_views')
+          .select('time_on_page')
+          .not('time_on_page', 'is', null);
+
+        if (dateFilter) {
+          timeQuery = timeQuery.gte('created_at', dateFilter);
+        }
+
+        if (excludedIPHashes.length > 0) {
+          excludedIPHashes.forEach(hash => {
+            timeQuery = timeQuery.neq('hashed_ip', hash);
+          });
+        }
+
+        const { data: timeData } = await timeQuery;
+
+        const timeDistribution = {
+          '0-30s': 0,
+          '30s-1min': 0,
+          '1-2min': 0,
+          '2-5min': 0,
+          '5min+': 0
+        };
+
+        if (timeData) {
+          timeData.forEach(item => {
+            const time = item.time_on_page || 0;
+            if (time <= 30) {
+              timeDistribution['0-30s']++;
+            } else if (time <= 60) {
+              timeDistribution['30s-1min']++;
+            } else if (time <= 120) {
+              timeDistribution['1-2min']++;
+            } else if (time <= 300) {
+              timeDistribution['2-5min']++;
+            } else {
+              timeDistribution['5min+']++;
+            }
+          });
+        }
+
+        // Pages per session distribution
+        const pagesDistribution = {
+          '1': 0,
+          '2-3': 0,
+          '4-5': 0,
+          '6+': 0
+        };
+
+        pagesPerSession.forEach(count => {
+          if (count === 1) {
+            pagesDistribution['1']++;
+          } else if (count <= 3) {
+            pagesDistribution['2-3']++;
+          } else if (count <= 5) {
+            pagesDistribution['4-5']++;
+          } else {
+            pagesDistribution['6+']++;
+          }
+        });
+
+        result = {
+          bounce_rate: bounceRate,
+          pages_per_session: {
+            average: avgPagesPerSession,
+            distribution: pagesDistribution
+          },
+          session_duration: {
+            average: avgSessionDuration,
+            total_sessions: totalSessions
+          },
+          return_rate: returnRate,
+          new_visitors: newVisitors,
+          returning_visitors: returningVisitors,
+          time_distribution: timeDistribution
+        };
+        break;
+      }
+
+      case 'sources': {
+        // Analyze traffic sources: Direct, Search, Social, Other
+        let query = supabase
+          .from('page_views')
+          .select('referrer_domain, page_path, time_on_page, is_bounce');
+
+        if (dateFilter) {
+          query = query.gte('created_at', dateFilter);
+        }
+
+        if (excludedIPHashes.length > 0) {
+          excludedIPHashes.forEach(hash => {
+            query = query.neq('hashed_ip', hash);
+          });
+        }
+
+        const { data: views } = await query;
+
+        const categories = {
+          'Direct': { count: 0, bounce_count: 0, total_time: 0, time_count: 0 },
+          'Search': { count: 0, bounce_count: 0, total_time: 0, time_count: 0 },
+          'Social': { count: 0, bounce_count: 0, total_time: 0, time_count: 0 },
+          'Other': { count: 0, bounce_count: 0, total_time: 0, time_count: 0 }
+        };
+
+        const referrerMap = {};
+        const searchEngines = {
+          'Google': 0,
+          'Bing': 0,
+          'DuckDuckGo': 0,
+          'Yahoo': 0,
+          'Other': 0
+        };
+
+        // Search engine domains
+        const searchDomains = {
+          'google.com': 'Google',
+          'google.': 'Google', // Covers google.co.uk, etc.
+          'bing.com': 'Bing',
+          'duckduckgo.com': 'DuckDuckGo',
+          'yahoo.com': 'Yahoo',
+          'yandex.com': 'Yandex'
+        };
+
+        // Social media domains
+        const socialDomains = ['x.com', 'twitter.com', 'facebook.com', 'instagram.com', 'linkedin.com', 'reddit.com', 'tiktok.com'];
+
+        if (views) {
+          views.forEach(view => {
+            const domain = view.referrer_domain;
+            let category = 'Direct';
+            let searchEngine = null;
+
+            if (!domain || domain === '') {
+              category = 'Direct';
+            } else {
+              const domainLower = domain.toLowerCase();
+              
+              // Check if it's a search engine
+              for (const [searchDomain, engineName] of Object.entries(searchDomains)) {
+                if (domainLower.includes(searchDomain)) {
+                  category = 'Search';
+                  searchEngine = engineName;
+                  break;
+                }
+              }
+
+              // Check if it's social media
+              if (category === 'Direct' && socialDomains.some(social => domainLower.includes(social))) {
+                category = 'Social';
+              }
+
+              // If not search or social, it's "Other" (unless it's our own domain)
+              if (category === 'Direct' && !domainLower.includes('watchmanscry.site') && !domainLower.includes('localhost')) {
+                category = 'Other';
+              }
+            }
+
+            // Count by category
+            categories[category].count++;
+            if (view.is_bounce) {
+              categories[category].bounce_count++;
+            }
+            if (view.time_on_page) {
+              categories[category].total_time += view.time_on_page;
+              categories[category].time_count++;
+            }
+
+            // Track individual referrers
+            if (domain && category !== 'Direct') {
+              if (!referrerMap[domain]) {
+                referrerMap[domain] = {
+                  domain: domain,
+                  count: 0,
+                  bounce_count: 0,
+                  total_time: 0,
+                  time_count: 0,
+                  category: category
+                };
+              }
+              referrerMap[domain].count++;
+              if (view.is_bounce) {
+                referrerMap[domain].bounce_count++;
+              }
+              if (view.time_on_page) {
+                referrerMap[domain].total_time += view.time_on_page;
+                referrerMap[domain].time_count++;
+              }
+            }
+
+            // Track search engines
+            if (searchEngine) {
+              if (searchEngines[searchEngine]) {
+                searchEngines[searchEngine]++;
+              } else {
+                searchEngines['Other']++;
+              }
+            }
+          });
+        }
+
+        // Calculate bounce rates and avg time for categories
+        const categoryData = Object.entries(categories).map(([name, data]) => ({
+          name: name,
+          count: data.count,
+          percentage: views && views.length > 0 ? Math.round((data.count / views.length) * 100) : 0,
+          bounce_rate: data.count > 0 ? Math.round((data.bounce_count / data.count) * 100) : 0,
+          avg_time: data.time_count > 0 ? Math.round(data.total_time / data.time_count) : 0
+        }));
+
+        // Calculate metrics for top referrers
+        const topReferrers = Object.values(referrerMap)
+          .map(ref => ({
+            domain: ref.domain,
+            count: ref.count,
+            bounce_rate: ref.count > 0 ? Math.round((ref.bounce_count / ref.count) * 100) : 0,
+            avg_time: ref.time_count > 0 ? Math.round(ref.total_time / ref.time_count) : 0,
+            category: ref.category
+          }))
+          .sort((a, b) => b.count - a.count)
+          .slice(0, 10);
+
+        // Format search engines
+        const searchEngineData = Object.entries(searchEngines)
+          .filter(([_, count]) => count > 0)
+          .map(([name, count]) => ({
+            name: name,
+            count: count
+          }))
+          .sort((a, b) => b.count - a.count);
+
+        result = {
+          categories: categoryData,
+          top_referrers: topReferrers,
+          search_engines: searchEngineData
+        };
+        break;
+      }
+
+      case 'content': {
+        // Analyze content performance by page type and engagement
+        let query = supabase
+          .from('page_views')
+          .select('page_path, time_on_page, is_bounce, created_at');
+
+        if (dateFilter) {
+          query = query.gte('created_at', dateFilter);
+        }
+
+        if (excludedIPHashes.length > 0) {
+          excludedIPHashes.forEach(hash => {
+            query = query.neq('hashed_ip', hash);
+          });
+        }
+
+        const { data: views } = await query;
+
+        const pageStats = {};
+        const editions = [];
+
+        if (views) {
+          views.forEach(view => {
+            const path = view.page_path || '/';
+            
+            if (!pageStats[path]) {
+              pageStats[path] = {
+                path: path,
+                views: 0,
+                total_time: 0,
+                time_count: 0,
+                bounces: 0,
+                sessions: new Set()
+              };
+            }
+
+            pageStats[path].views++;
+            if (view.time_on_page) {
+              pageStats[path].total_time += view.time_on_page;
+              pageStats[path].time_count++;
+            }
+            if (view.is_bounce) {
+              pageStats[path].bounces++;
+            }
+
+            // Track editions (archive pages)
+            if (path.includes('/archive/') || path.includes('edition-') || path.includes('index-')) {
+              const editionMatch = path.match(/(\d{4}-\d{2}-\d{2})/);
+              if (editionMatch) {
+                const editionDate = editionMatch[1];
+                if (!editions.find(e => e.date === editionDate)) {
+                  editions.push({
+                    date: editionDate,
+                    path: path,
+                    views: 0,
+                    total_time: 0,
+                    time_count: 0,
+                    bounces: 0
+                  });
+                }
+                const edition = editions.find(e => e.date === editionDate);
+                edition.views++;
+                if (view.time_on_page) {
+                  edition.total_time += view.time_on_page;
+                  edition.time_count++;
+                }
+                if (view.is_bounce) {
+                  edition.bounces++;
+                }
+              }
+            }
+          });
+        }
+
+        // Calculate engagement metrics per page
+        const pagePerformance = Object.values(pageStats).map(page => {
+          const avgTime = page.time_count > 0 ? Math.round(page.total_time / page.time_count) : 0;
+          const bounceRate = page.views > 0 ? Math.round((page.bounces / page.views) * 100) : 0;
+          
+          // Engagement score: weighted combination (lower bounce = better, higher time = better)
+          const engagementScore = Math.round(
+            (page.views * 0.3) + // Views weight
+            ((100 - bounceRate) * 0.4) + // Low bounce rate weight
+            (Math.min(avgTime / 10, 10) * 0.3) // Time weight (capped at 10 points for 100+ seconds)
+          );
+
+          return {
+            path: page.path,
+            views: page.views,
+            avg_time: avgTime,
+            bounce_rate: bounceRate,
+            engagement_score: engagementScore
+          };
+        });
+
+        // Sort by engagement score
+        pagePerformance.sort((a, b) => b.engagement_score - a.engagement_score);
+
+        // Calculate metrics for editions
+        const editionPerformance = editions.map(edition => {
+          const avgTime = edition.time_count > 0 ? Math.round(edition.total_time / edition.time_count) : 0;
+          const bounceRate = edition.views > 0 ? Math.round((edition.bounces / edition.views) * 100) : 0;
+          const engagementScore = Math.round(
+            (edition.views * 0.3) +
+            ((100 - bounceRate) * 0.4) +
+            (Math.min(avgTime / 10, 10) * 0.3)
+          );
+
+          return {
+            date: edition.date,
+            path: edition.path,
+            views: edition.views,
+            avg_time: avgTime,
+            bounce_rate: bounceRate,
+            engagement_score: engagementScore
+          };
+        });
+
+        editionPerformance.sort((a, b) => b.engagement_score - a.engagement_score);
+
+        result = {
+          top_pages: pagePerformance.slice(0, 15),
+          editions: editionPerformance,
+          engagement_rankings: pagePerformance.slice(0, 10)
+        };
+        break;
+      }
+
+      case 'journey': {
+        // Analyze entry and exit pages
+        let sessionsQuery = supabase
+          .from('visitor_sessions')
+          .select('session_id, first_visit_at, last_visit_at');
+
+        if (dateFilter) {
+          sessionsQuery = sessionsQuery.gte('first_visit_at', dateFilter);
+        }
+
+        if (excludedIPHashes.length > 0) {
+          excludedIPHashes.forEach(hash => {
+            sessionsQuery = sessionsQuery.neq('hashed_ip', hash);
+          });
+        }
+
+        const { data: sessions } = await sessionsQuery;
+
+        const entryPages = {};
+        const exitPages = {};
+        let totalSessions = 0;
+
+        // Get all page views for these sessions in one query
+        const sessionIds = sessions ? sessions.map(s => s.session_id) : [];
+        
+        if (sessionIds.length > 0) {
+          // Get all page views for these sessions, ordered by session and time
+          const { data: allPageViews } = await supabase
+            .from('page_views')
+            .select('session_id, page_path, created_at')
+            .in('session_id', sessionIds)
+            .order('session_id', { ascending: true })
+            .order('created_at', { ascending: true });
+
+          // Group by session and find first/last
+          const sessionPages = {};
+          if (allPageViews) {
+            allPageViews.forEach(view => {
+              const sessionId = view.session_id;
+              if (!sessionPages[sessionId]) {
+                sessionPages[sessionId] = [];
+              }
+              sessionPages[sessionId].push(view);
+            });
+          }
+
+          // Process each session
+          if (sessions) {
+            sessions.forEach(session => {
+              totalSessions++;
+              const pages = sessionPages[session.session_id] || [];
+              
+              if (pages.length > 0) {
+                // First page is entry
+                const entryPath = pages[0].page_path || '/';
+                entryPages[entryPath] = (entryPages[entryPath] || 0) + 1;
+                
+                // Last page is exit
+                const exitPath = pages[pages.length - 1].page_path || '/';
+                exitPages[exitPath] = (exitPages[exitPath] || 0) + 1;
+              }
+            });
+          }
+        }
+
+        // Format entry pages
+        const entryPagesData = Object.entries(entryPages)
+          .map(([path, count]) => ({
+            path: path,
+            count: count,
+            percentage: totalSessions > 0 ? Math.round((count / totalSessions) * 100) : 0
+          }))
+          .sort((a, b) => b.count - a.count)
+          .slice(0, 10);
+
+        // Format exit pages
+        const exitPagesData = Object.entries(exitPages)
+          .map(([path, count]) => ({
+            path: path,
+            count: count,
+            percentage: totalSessions > 0 ? Math.round((count / totalSessions) * 100) : 0
+          }))
+          .sort((a, b) => b.count - a.count)
+          .slice(0, 10);
+
+        // Calculate exit rate per page (exits / total views of that page)
+        let pageViewsQuery = supabase
+          .from('page_views')
+          .select('page_path')
+          .not('page_path', 'is', null);
+
+        if (dateFilter) {
+          pageViewsQuery = pageViewsQuery.gte('created_at', dateFilter);
+        }
+
+        if (excludedIPHashes.length > 0) {
+          excludedIPHashes.forEach(hash => {
+            pageViewsQuery = pageViewsQuery.neq('hashed_ip', hash);
+          });
+        }
+
+        const { data: allPageViews } = await pageViewsQuery;
+
+        const pageViewCounts = {};
+        if (allPageViews) {
+          allPageViews.forEach(view => {
+            const path = view.page_path || '/';
+            pageViewCounts[path] = (pageViewCounts[path] || 0) + 1;
+          });
+        }
+
+        const exitRates = exitPagesData.map(exit => ({
+          path: exit.path,
+          exits: exit.count,
+          total_views: pageViewCounts[exit.path] || 0,
+          exit_rate: pageViewCounts[exit.path] > 0
+            ? Math.round((exit.count / pageViewCounts[exit.path]) * 100)
+            : 0
+        }));
+
+        result = {
+          entry_pages: entryPagesData,
+          exit_pages: exitPagesData,
+          exit_rates: exitRates.sort((a, b) => b.exit_rate - a.exit_rate)
         };
         break;
       }
