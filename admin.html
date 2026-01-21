@@ -336,7 +336,7 @@
             const period = periodSelect ? periodSelect.value : '7d';
             const token = session.access_token;
 
-            const [pageviewsRes, visitorsRes, devicesRes, timeonpageRes, hourlyRes, timelineRes, growthRes, engagementRes, sourcesRes, contentRes, journeyRes, visitsRes] = await Promise.all([
+            const [pageviewsRes, visitorsRes, devicesRes, timeonpageRes, timelineRes, growthRes, engagementRes, sourcesRes, contentRes, journeyRes] = await Promise.all([
               fetch(`/api/analytics-data?metric=pageviews&period=${period}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
               }).then(r => r.ok ? r.json() : null).catch(() => null),
@@ -347,9 +347,6 @@
                 headers: { 'Authorization': `Bearer ${token}` }
               }).then(r => r.ok ? r.json() : null).catch(() => null),
               fetch(`/api/analytics-data?metric=timeonpage&period=${period}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-              }).then(r => r.ok ? r.json() : null).catch(() => null),
-              fetch(`/api/analytics-data?metric=hourly&period=${period}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
               }).then(r => r.ok ? r.json() : null).catch(() => null),
               fetch(`/api/analytics-data?metric=timeline&period=${period}`, {
@@ -368,9 +365,6 @@
                 headers: { 'Authorization': `Bearer ${token}` }
               }).then(r => r.ok ? r.json() : null).catch(() => null),
               fetch(`/api/analytics-data?metric=journey&period=${period}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-              }).then(r => r.ok ? r.json() : null).catch(() => null),
-              fetch(`/api/analytics-data?metric=visits&period=${period}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
               }).then(r => r.ok ? r.json() : null).catch(() => null)
             ]);
@@ -710,53 +704,6 @@
               </div>
               ` : ''}
 
-              <!-- Page Views by Hour (1) -->
-              ${hourlyRes?.hourly?.length > 0 ? `
-              <div style="margin-bottom: 2em; padding: 1em; background-color: rgba(244, 232, 212, 0.3); border: 1px solid #000;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1em;">
-                  <h4 style="margin: 0;">Page Views by Hour of Day (CST)</h4>
-                  <div id="hourly-filter-indicator" style="display: none; font-size: 0.9em; color: #666;">
-                    <span id="filtered-page-name"></span>
-                    <button onclick="clearHourlyFilter()" style="margin-left: 0.5em; padding: 0.25em 0.5em; background-color: #000; color: #f4e8d4; border: none; font-family: 'EB Garamond', serif; cursor: pointer; font-size: 0.85em;">Clear Filter</button>
-                  </div>
-                </div>
-                <canvas id="hourlyViewsChart" style="max-height: 300px;"></canvas>
-              </div>
-              ` : ''}
-
-              <!-- Recent Visits Table (replaces Average Time on Page chart) -->
-              ${visitsRes?.visits?.length > 0 ? `
-              <div style="margin-bottom: 2em; padding: 1em; background-color: rgba(244, 232, 212, 0.3); border: 1px solid #000;">
-                <h4 style="margin-top: 0; margin-bottom: 0.5em;">Recent Visits (Exact Times, Locations, Visitor Type)</h4>
-                <p style="font-size: 0.9em; color: #666; margin-bottom: 0.75em;">
-                  Most recent ${visitsRes.visits.length} visits. Times are shown in Central Time (CST/CDT).
-                </p>
-                <div style="overflow-x: auto;">
-                  <table style="width: 100%; border-collapse: collapse; font-size: 0.9em;">
-                    <thead>
-                      <tr style="border-bottom: 2px solid #000; background-color: rgba(244, 232, 212, 0.6);">
-                        <th style="padding: 0.5em; text-align: left;">Time (CST)</th>
-                        <th style="padding: 0.5em; text-align: left;">Page</th>
-                        <th style="padding: 0.5em; text-align: left;">Country</th>
-                        <th style="padding: 0.5em; text-align: left;">Visitor</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      ${visitsRes.visits.map(visit => `
-                        <tr style="border-bottom: 1px solid #ccc;">
-                          <td style="padding: 0.5em; white-space: nowrap;">${escapeHtml(visit.time_display || 'Unknown')}</td>
-                          <td style="padding: 0.5em;">${escapeHtml(getPageName(visit.path || '/'))}</td>
-                          <td style="padding: 0.5em;">${escapeHtml(visit.country || 'Unknown')}</td>
-                          <td style="padding: 0.5em;">
-                            ${visit.is_returning === null ? 'Unknown' : visit.is_returning ? 'Returning' : 'New'}
-                          </td>
-                        </tr>
-                      `).join('')}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-              ` : ''}
 
               <!-- Device Types and Top Countries side by side (3 & 4) -->
               <!-- Device Types -->
@@ -780,18 +727,15 @@
             
             // Store data globally for filtering functionality
             window.currentAnalyticsData = {
-              hourly: hourlyRes?.hourly || [],
               timeline: timelineRes || null,
               growth: growthRes || null,
               engagement: engagementRes || null,
               sources: sourcesRes || null,
               content: contentRes || null,
               journey: journeyRes || null,
-              visits: visitsRes?.visits || [],
               period: period,
               token: token
             };
-            window.selectedPagePath = null; // Track selected page for filtering
             window.timelineState = {
               level: 'months', // 'months', 'days', 'hours'
               selectedMonth: null,
@@ -828,7 +772,6 @@
               renderSourcesPieChart(sourcesRes.categories);
             }
             if (hourlyRes?.hourly?.length > 0) {
-              renderHourlyViewsChart(hourlyRes.hourly);
             }
             if (timeonpageRes?.by_page?.length > 0) {
               renderTimeOnPageChart(timeonpageRes.by_page);
@@ -944,163 +887,6 @@
           return;
         }
 
-        // Render Hourly Views line chart
-        function renderHourlyViewsChart(data) {
-          // Destroy existing chart if it exists
-          if (window.hourlyViewsChartInstance) {
-            window.hourlyViewsChartInstance.destroy();
-          }
-
-          const ctx = document.getElementById('hourlyViewsChart');
-          if (!ctx) return;
-
-          // Format labels (0-23 hours)
-          const labels = data.map(item => {
-            const hour = item.hour;
-            // Format as 12-hour time (e.g., "12 AM", "1 PM")
-            const period = hour >= 12 ? 'PM' : 'AM';
-            const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
-            return `${displayHour} ${period}`;
-          });
-          const values = data.map(item => item.count);
-          const maxValue = values.length ? Math.max(...values) : 0;
-          const yMax = maxValue === 0 ? 1 : maxValue + Math.ceil(maxValue * 0.1);
-
-          window.hourlyViewsChartInstance = new Chart(ctx, {
-            type: 'line',
-            data: {
-              labels: labels,
-              datasets: [{
-                label: 'Page Views',
-                data: values,
-                borderColor: '#000',
-                backgroundColor: 'rgba(0, 0, 0, 0.1)',
-                borderWidth: 2,
-                fill: true,
-                tension: 0.4, // Smooth curve
-                pointBackgroundColor: '#000',
-                pointBorderColor: '#f4e8d4',
-                pointBorderWidth: 2,
-                pointRadius: 4,
-                pointHoverRadius: 6
-              }]
-            },
-            options: {
-              responsive: true,
-              maintainAspectRatio: true,
-              plugins: {
-                legend: {
-                  display: false
-                },
-                tooltip: {
-                  backgroundColor: 'rgba(244, 232, 212, 0.95)',
-                  titleColor: '#000',
-                  bodyColor: '#000',
-                  borderColor: '#000',
-                  borderWidth: 1,
-                  padding: 12,
-                  callbacks: {
-                    label: function(context) {
-                      return 'Views: ' + context.parsed.y;
-                    }
-                  }
-                }
-              },
-              scales: {
-                x: {
-                  ticks: {
-                    color: '#000',
-                    font: {
-                      family: "'EB Garamond', serif",
-                      size: 11
-                    },
-                    maxRotation: 45,
-                    minRotation: 45
-                  },
-                  grid: {
-                    color: 'rgba(0, 0, 0, 0.1)'
-                  }
-                },
-                y: {
-                  beginAtZero: true,
-                  max: yMax,
-                  ticks: {
-                    color: '#000',
-                    font: {
-                      family: "'EB Garamond', serif",
-                      size: 12
-                    },
-                    stepSize: 1
-                  },
-                  grid: {
-                    color: 'rgba(0, 0, 0, 0.1)'
-                  }
-                }
-              }
-            }
-          });
-        }
-
-        // Filter hourly chart by selected page
-        async function filterHourlyChartByPage(pagePath, pageName) {
-          // Store the selected page path
-          window.selectedPagePath = pagePath;
-          
-          // Show filter indicator
-          const indicator = document.getElementById('hourly-filter-indicator');
-          const pageNameSpan = document.getElementById('filtered-page-name');
-          if (indicator && pageNameSpan) {
-            pageNameSpan.textContent = `Filtered by: ${pageName}`;
-            indicator.style.display = 'block';
-          }
-
-          // Get current analytics data
-          const analyticsData = window.currentAnalyticsData;
-          if (!analyticsData || !analyticsData.token) {
-            console.error('Analytics data not available');
-            return;
-          }
-
-          try {
-            // Fetch filtered hourly data
-            const period = analyticsData.period || '7d';
-            const response = await fetch(`/api/analytics-data?metric=hourly&period=${period}&page_path=${encodeURIComponent(pagePath)}`, {
-              headers: { 'Authorization': `Bearer ${analyticsData.token}` }
-            });
-
-            if (response.ok) {
-              const filteredData = await response.json();
-              if (filteredData?.hourly?.length > 0) {
-                // Re-render the hourly chart with filtered data
-                renderHourlyViewsChart(filteredData.hourly);
-              } else {
-                // No data for this page - show empty chart
-                renderHourlyViewsChart(Array.from({length: 24}, (_, i) => ({ hour: i, count: 0 })));
-              }
-            } else {
-              console.error('Failed to fetch filtered hourly data');
-            }
-          } catch (error) {
-            console.error('Error filtering hourly chart:', error);
-          }
-        }
-
-        // Clear the hourly filter and show all data
-        function clearHourlyFilter() {
-          window.selectedPagePath = null;
-          
-          // Hide filter indicator
-          const indicator = document.getElementById('hourly-filter-indicator');
-          if (indicator) {
-            indicator.style.display = 'none';
-          }
-
-          // Get original hourly data and re-render
-          const analyticsData = window.currentAnalyticsData;
-          if (analyticsData && analyticsData.hourly && analyticsData.hourly.length > 0) {
-            renderHourlyViewsChart(analyticsData.hourly);
-          }
-        }
 
         // Drill down to days for a selected month
         async function drillDownToDays(month) {
