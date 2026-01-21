@@ -1651,14 +1651,9 @@
 
         // Reset all analytics data
         async function resetAnalyticsData() {
-            views: 847,
-            avgTime: 136, // seconds per reader
-            sections: ["Opening Dispatch", "The Plain Truth", "Prophetic Parallels", "Victory Reports", "Common Man's Counsel", "Practical Self-Reliance", "Prayer"],
-            trend: "up" // "up", "down", "stable"
-          },
-          {
-            date: "January 9, 2026",
-            url: "archive/edition-2026-01-09.html",
+          if (!confirm('Are you sure you want to delete ALL analytics data? This cannot be undone.')) {
+            return;
+          }
             totalTime: 8920,
             views: 623,
             avgTime: 143,
@@ -2270,9 +2265,6 @@
           link.click();
           document.body.removeChild(link);
         }
-          if (!confirm('Are you sure you want to delete ALL analytics data? This cannot be undone.')) {
-            return;
-          }
 
           if (!confirm('This will permanently delete all page views, visitor sessions, and rate limit data. Continue?')) {
             return;
