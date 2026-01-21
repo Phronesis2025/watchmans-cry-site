@@ -241,17 +241,45 @@
 
   document.addEventListener('click', function(event) {
     const link = event.target.closest('a');
-    if (!link || !link.href) return;
+    const button = event.target.closest('button');
+    
+    // Track navigation link clicks
+    if (link && link.href) {
+      const href = link.getAttribute('href');
+      if (!href) return;
 
-    const href = link.getAttribute('href');
-    if (!href) return;
+      // Check if it's a navigation link (internal)
+      const navLink = link.closest('nav');
+      if (navLink) {
+        const linkText = link.textContent.trim() || link.querySelector('.nav-word')?.textContent.trim() || href;
+        gtag('event', 'navigation_click', {
+          link_text: linkText,
+          link_url: href,
+          page_path: window.location.pathname || '/',
+          page_title: document.title
+        });
+      }
 
-    // Check if it's an outbound link
-    if (isOutboundLink(href)) {
-      gtag('event', 'click', {
-        event_category: 'outbound',
-        event_label: href,
-        transport_type: 'beacon', // Use sendBeacon for reliability
+      // Check if it's an outbound link
+      if (isOutboundLink(href)) {
+        gtag('event', 'click', {
+          event_category: 'outbound',
+          event_label: href,
+          transport_type: 'beacon',
+          page_path: window.location.pathname || '/',
+          page_title: document.title
+        });
+      }
+    }
+
+    // Track submit button clicks
+    if (button && (button.type === 'submit' || button.textContent.toLowerCase().includes('submit'))) {
+      const form = button.closest('form');
+      const formId = form ? form.id || form.getAttribute('name') || 'unknown' : 'standalone';
+      
+      gtag('event', 'submit_question', {
+        form_id: formId,
+        button_text: button.textContent.trim(),
         page_path: window.location.pathname || '/',
         page_title: document.title
       });
