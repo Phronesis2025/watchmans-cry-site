@@ -126,6 +126,21 @@
           // Normalize path first
           const normalizedPath = normalizePagePath(path);
           
+          // Check if it's a section path (homepage sections)
+          if (normalizedPath.startsWith('/section/')) {
+            const sectionPath = normalizedPath.replace('/section/', '');
+            const sectionNames = {
+              'opening-dispatch': 'Opening Dispatch',
+              'plain-truth': 'The Plain Truth',
+              'prophetic-parallels': 'Prophetic Parallels',
+              'victory-reports': 'Victory Reports',
+              'common-mans-counsel': 'The Common Man\'s Counsel',
+              'practical-self-reliance': 'Practical Self-Reliance Corner',
+              'prayer-closing': 'Prayer of the Week & Closing Call'
+            };
+            return sectionNames[sectionPath] || `Section: ${sectionPath}`;
+          }
+          
           const pageNames = {
             '/': 'Home',
             '/about.html': 'About',

@@ -41,10 +41,15 @@ function getExcludedIPHashes() {
 }
 
 // Normalize page paths - combine / and /index.html as the same page
+// Note: Section paths (/section/...) are preserved as-is
 function normalizePagePath(path) {
   if (!path) return '/';
   if (path === '/index.html' || path === 'index.html') {
     return '/';
+  }
+  // Preserve section paths
+  if (path.startsWith('/section/')) {
+    return path;
   }
   return path;
 }
