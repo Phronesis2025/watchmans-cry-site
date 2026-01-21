@@ -352,7 +352,7 @@
             const period = periodSelect ? periodSelect.value : '7d';
             const token = session.access_token;
 
-            const [pageviewsRes, visitorsRes, devicesRes, timeonpageRes, timelineRes, growthRes, engagementRes, sourcesRes, contentRes, journeyRes] = await Promise.all([
+            const [pageviewsRes, visitorsRes, devicesRes, timeonpageRes, timelineRes, growthRes, engagementRes, sourcesRes, contentRes, journeyRes, geographyRes, demographicsRes] = await Promise.all([
               fetch(`/api/analytics-data?metric=pageviews&period=${period}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
               }).then(r => r.ok ? r.json() : null).catch(() => null),
@@ -382,25 +382,36 @@
               }).then(r => r.ok ? r.json() : null).catch(() => null),
               fetch(`/api/analytics-data?metric=journey&period=${period}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
+              }).then(r => r.ok ? r.json() : null).catch(() => null),
+              fetch(`/api/analytics-data?metric=geography&period=${period}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+              }).then(r => r.ok ? r.json() : null).catch(() => null),
+              fetch(`/api/analytics-data?metric=demographics&period=${period}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
               }).then(r => r.ok ? r.json() : null).catch(() => null)
             ]);
 
             let html = `
-              <p><strong>Site Analytics</strong></p>
-              <div style="margin-bottom: 1em; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5em;">
-                <div>
-                  <label style="font-weight: 700; margin-right: 0.5em;">Time Period:</label>
-                  <select id="analytics-period" onchange="loadSiteMetrics()" style="padding: 0.25em; border: 1px solid #000; font-family: 'EB Garamond', serif;">
-                    <option value="7d" ${period === '7d' ? 'selected' : ''}>Last 7 days</option>
-                    <option value="30d" ${period === '30d' ? 'selected' : ''}>Last 30 days</option>
-                    <option value="all" ${period === 'all' ? 'selected' : ''}>All time</option>
-                  </select>
-                  <button onclick="loadSiteMetrics()" style="margin-left: 0.5em; padding: 0.25em 0.75em; background-color: #000; color: #f4e8d4; border: none; font-family: 'EB Garamond', serif; cursor: pointer;">Refresh</button>
+              <div style="margin-bottom: 2em; padding-bottom: 1em; border-bottom: 2px solid #000;">
+                <h2 style="margin-top: 0; margin-bottom: 0.5em;">Site Analytics Dashboard</h2>
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5em;">
+                  <div>
+                    <label style="font-weight: 700; margin-right: 0.5em;">Time Period:</label>
+                    <select id="analytics-period" onchange="loadSiteMetrics()" style="padding: 0.5em; border: 1px solid #000; font-family: 'EB Garamond', serif; font-size: 1em;">
+                      <option value="7d" ${period === '7d' ? 'selected' : ''}>Last 7 days</option>
+                      <option value="30d" ${period === '30d' ? 'selected' : ''}>Last 30 days</option>
+                      <option value="all" ${period === 'all' ? 'selected' : ''}>All time</option>
+                    </select>
+                    <button onclick="loadSiteMetrics()" style="margin-left: 0.5em; padding: 0.5em 1em; background-color: #000; color: #f4e8d4; border: none; font-family: 'EB Garamond', serif; cursor: pointer; font-size: 1em;">Refresh</button>
+                  </div>
+                  <button onclick="resetAnalyticsData()" style="padding: 0.5em 1em; background-color: #8b0000; color: #f4e8d4; border: 1px solid #8b0000; font-family: 'EB Garamond', serif; cursor: pointer; font-size: 0.9em;" title="Delete all analytics data and start fresh">Reset All Data</button>
                 </div>
-                <button onclick="resetAnalyticsData()" style="padding: 0.25em 0.75em; background-color: #8b0000; color: #f4e8d4; border: 1px solid #8b0000; font-family: 'EB Garamond', serif; cursor: pointer; font-size: 0.9em;" title="Delete all analytics data and start fresh">Reset All Data</button>
               </div>
               
-              <!-- Enhanced KPI Cards with Trends (styled like modern stat cards, in site colors) -->
+              <!-- SECTION 1: OVERVIEW - Key Performance Indicators -->
+              <div style="margin-bottom: 3em;">
+                <h3 style="margin-top: 0; margin-bottom: 1em; padding-bottom: 0.5em; border-bottom: 1px solid #000;">Overview</h3>
+                <!-- Enhanced KPI Cards with Trends (styled like modern stat cards, in site colors) -->
               <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.25em; margin-bottom: 2em;">
                 <!-- Page Views Card with Growth -->
                 <div style="padding: 1.25em 1.1em; background: linear-gradient(135deg, rgba(244, 232, 212, 0.95), rgba(219, 189, 140, 0.95)); border: 1px solid #000; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.18); text-align: left; position: relative; overflow: hidden;">
@@ -479,7 +490,12 @@
                   </p>
                 </div>
               </div>
+              </div>
 
+              <!-- SECTION 2: TRAFFIC ANALYSIS -->
+              <div style="margin-bottom: 3em;">
+                <h3 style="margin-top: 0; margin-bottom: 1em; padding-bottom: 0.5em; border-bottom: 1px solid #000;">Traffic Analysis</h3>
+                
               <!-- Traffic Trend Chart (Daily with Comparison) -->
               ${pageviewsRes?.daily?.length > 0 ? `
               <div style="margin-bottom: 2em; padding: 1em; background-color: rgba(244, 232, 212, 0.3); border: 1px solid #000;">
@@ -515,8 +531,145 @@
                 <canvas id="dayOfWeekChart" style="max-height: 300px;"></canvas>
               </div>
               ` : ''}
+              </div>
 
-              <!-- Engagement Distribution Charts -->
+              <!-- SECTION 3: AUDIENCE INSIGHTS -->
+              <div style="margin-bottom: 3em;">
+                <h3 style="margin-top: 0; margin-bottom: 1em; padding-bottom: 0.5em; border-bottom: 1px solid #000;">Audience Insights</h3>
+                
+              <!-- Geography (Countries & Cities) -->
+              ${geographyRes?.countries?.length > 0 || geographyRes?.cities?.length > 0 ? `
+              <div style="margin-bottom: 2em; padding: 1em; background-color: rgba(244, 232, 212, 0.3); border: 1px solid #000;">
+                <h4 style="margin-top: 0; margin-bottom: 1em;">Geographic Distribution</h4>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2em;">
+                  <div>
+                    <h5 style="margin-top: 0; margin-bottom: 0.75em; font-size: 1em;">Top Countries</h5>
+                    <table style="width: 100%; border-collapse: collapse; font-size: 0.9em;">
+                      <thead>
+                        <tr style="border-bottom: 2px solid #000;">
+                          <th style="padding: 0.5em; text-align: left; font-weight: 700;">Country</th>
+                          <th style="padding: 0.5em; text-align: right; font-weight: 700;">Sessions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        ${geographyRes.countries.slice(0, 10).map((country, idx) => `
+                          <tr style="border-bottom: 1px solid #ccc; ${idx < 3 ? 'background-color: rgba(244, 232, 212, 0.2);' : ''}">
+                            <td style="padding: 0.5em;">${escapeHtml(country.country)}</td>
+                            <td style="padding: 0.5em; text-align: right; font-weight: ${idx < 3 ? '700' : '400'};">${country.count}</td>
+                          </tr>
+                        `).join('')}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div>
+                    <h5 style="margin-top: 0; margin-bottom: 0.75em; font-size: 1em;">Top Cities</h5>
+                    <table style="width: 100%; border-collapse: collapse; font-size: 0.9em;">
+                      <thead>
+                        <tr style="border-bottom: 2px solid #000;">
+                          <th style="padding: 0.5em; text-align: left; font-weight: 700;">City</th>
+                          <th style="padding: 0.5em; text-align: right; font-weight: 700;">Sessions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        ${geographyRes.cities.slice(0, 10).map((city, idx) => `
+                          <tr style="border-bottom: 1px solid #ccc; ${idx < 3 ? 'background-color: rgba(244, 232, 212, 0.2);' : ''}">
+                            <td style="padding: 0.5em;">${escapeHtml(city.city)}</td>
+                            <td style="padding: 0.5em; text-align: right; font-weight: ${idx < 3 ? '700' : '400'};">${city.count}</td>
+                          </tr>
+                        `).join('')}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+              ` : ''}
+
+              <!-- Demographics (Age, Gender, Interests) -->
+              ${demographicsRes?.age?.length > 0 || demographicsRes?.gender?.length > 0 || demographicsRes?.interests?.length > 0 ? `
+              <div style="margin-bottom: 2em; padding: 1em; background-color: rgba(244, 232, 212, 0.3); border: 1px solid #000;">
+                <h4 style="margin-top: 0; margin-bottom: 1em;">User Demographics</h4>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 2em;">
+                  ${demographicsRes.age?.length > 0 ? `
+                  <div>
+                    <h5 style="margin-top: 0; margin-bottom: 0.75em; font-size: 1em;">Age Groups</h5>
+                    <table style="width: 100%; border-collapse: collapse; font-size: 0.9em;">
+                      <thead>
+                        <tr style="border-bottom: 2px solid #000;">
+                          <th style="padding: 0.5em; text-align: left; font-weight: 700;">Age</th>
+                          <th style="padding: 0.5em; text-align: right; font-weight: 700;">Users</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        ${demographicsRes.age.map(age => `
+                          <tr style="border-bottom: 1px solid #ccc;">
+                            <td style="padding: 0.5em;">${escapeHtml(age.age)}</td>
+                            <td style="padding: 0.5em; text-align: right;">${age.count}</td>
+                          </tr>
+                        `).join('')}
+                      </tbody>
+                    </table>
+                  </div>
+                  ` : ''}
+                  ${demographicsRes.gender?.length > 0 ? `
+                  <div>
+                    <h5 style="margin-top: 0; margin-bottom: 0.75em; font-size: 1em;">Gender</h5>
+                    <table style="width: 100%; border-collapse: collapse; font-size: 0.9em;">
+                      <thead>
+                        <tr style="border-bottom: 2px solid #000;">
+                          <th style="padding: 0.5em; text-align: left; font-weight: 700;">Gender</th>
+                          <th style="padding: 0.5em; text-align: right; font-weight: 700;">Users</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        ${demographicsRes.gender.map(g => `
+                          <tr style="border-bottom: 1px solid #ccc;">
+                            <td style="padding: 0.5em;">${escapeHtml(g.gender)}</td>
+                            <td style="padding: 0.5em; text-align: right;">${g.count}</td>
+                          </tr>
+                        `).join('')}
+                      </tbody>
+                    </table>
+                  </div>
+                  ` : ''}
+                  ${demographicsRes.interests?.length > 0 ? `
+                  <div>
+                    <h5 style="margin-top: 0; margin-bottom: 0.75em; font-size: 1em;">Top Interests</h5>
+                    <table style="width: 100%; border-collapse: collapse; font-size: 0.9em;">
+                      <thead>
+                        <tr style="border-bottom: 2px solid #000;">
+                          <th style="padding: 0.5em; text-align: left; font-weight: 700;">Interest</th>
+                          <th style="padding: 0.5em; text-align: right; font-weight: 700;">Users</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        ${demographicsRes.interests.map(interest => `
+                          <tr style="border-bottom: 1px solid #ccc;">
+                            <td style="padding: 0.5em;">${escapeHtml(interest.interest)}</td>
+                            <td style="padding: 0.5em; text-align: right;">${interest.count}</td>
+                          </tr>
+                        `).join('')}
+                      </tbody>
+                    </table>
+                  </div>
+                  ` : ''}
+                </div>
+              </div>
+              ` : ''}
+
+              <!-- Device Types -->
+              ${devicesRes?.devices?.length > 0 ? `
+              <div style="margin-bottom: 2em; padding: 1em; background-color: rgba(244, 232, 212, 0.3); border: 1px solid #000;">
+                <h4 style="margin-top: 0; margin-bottom: 1em;">Device Types</h4>
+                <canvas id="deviceTypesChart" style="max-height: 300px;"></canvas>
+              </div>
+              ` : ''}
+              </div>
+
+              <!-- SECTION 4: TRAFFIC SOURCES -->
+              <div style="margin-bottom: 3em;">
+                <h3 style="margin-top: 0; margin-bottom: 1em; padding-bottom: 0.5em; border-bottom: 1px solid #000;">Traffic Sources</h3>
+                
+              <!-- Traffic Sources -->
               ${engagementRes ? `
               <div style="margin-bottom: 2em; padding: 1em; background-color: rgba(244, 232, 212, 0.3); border: 1px solid #000;">
                 <h4 style="margin-top: 0; margin-bottom: 1em;">Engagement Quality Metrics</h4>
@@ -570,7 +723,19 @@
                 </div>
               </div>
               ` : ''}
+              ${sourcesRes?.xcom_traffic ? `
+              <div style="margin-top: 1em; padding: 1em; background-color: rgba(0, 0, 0, 0.1); border: 2px solid #000;">
+                <h5 style="margin-top: 0; margin-bottom: 0.5em; font-size: 1.1em;">X.com Traffic</h5>
+                <p style="margin: 0.25em 0; font-size: 1em;"><strong>Sessions from X.com:</strong> ${sourcesRes.xcom_traffic.sessions || 0}</p>
+                <p style="margin: 0.25em 0; font-size: 1em;"><strong>Percentage of Total:</strong> ${sourcesRes.xcom_traffic.percentage || 0}%</p>
+              </div>
+              ` : ''}
+              </div>
 
+              <!-- SECTION 5: CONTENT PERFORMANCE -->
+              <div style="margin-bottom: 3em;">
+                <h3 style="margin-top: 0; margin-bottom: 1em; padding-bottom: 0.5em; border-bottom: 1px solid #000;">Content Performance</h3>
+                
               <!-- Section View Time List -->
               ${contentRes?.screen_time?.length > 0 ? (() => {
                 // Filter to only show homepage sections
@@ -706,8 +871,13 @@
                 ` : ''}
               </div>
               ` : ''}
+              </div>
 
-              <!-- User Journey -->
+              <!-- SECTION 6: ENGAGEMENT METRICS -->
+              <div style="margin-bottom: 3em;">
+                <h3 style="margin-top: 0; margin-bottom: 1em; padding-bottom: 0.5em; border-bottom: 1px solid #000;">Engagement Metrics</h3>
+                
+              <!-- Engagement Distribution Charts -->
               ${journeyRes?.entry_pages?.length > 0 || journeyRes?.exit_pages?.length > 0 ? `
               <div style="margin-bottom: 2em; padding: 1em; background-color: rgba(244, 232, 212, 0.3); border: 1px solid #000;">
                 <h4 style="margin-top: 0; margin-bottom: 1em;">User Journey</h4>
@@ -753,16 +923,13 @@
                 </div>
               </div>
               ` : ''}
-
-
-              <!-- Device Types and Top Countries side by side (3 & 4) -->
-              <!-- Device Types -->
-              ${devicesRes?.devices?.length > 0 ? `
-              <div style="margin-bottom: 2em; padding: 1em; background-color: rgba(244, 232, 212, 0.3); border: 1px solid #000;">
-                <h4 style="margin-top: 0; margin-bottom: 1em;">Device Types</h4>
-                <canvas id="deviceTypesChart" style="max-height: 300px;"></canvas>
               </div>
-              ` : ''}
+
+              <!-- SECTION 7: USER JOURNEY -->
+              <div style="margin-bottom: 3em;">
+                <h3 style="margin-top: 0; margin-bottom: 1em; padding-bottom: 0.5em; border-bottom: 1px solid #000;">User Journey</h3>
+                
+              </div>
 
               ${!pageviewsRes && !visitorsRes ? `
               <div style="padding: 1em; background-color: rgba(244, 232, 212, 0.3); border: 1px solid #000;">
@@ -783,6 +950,8 @@
               sources: sourcesRes || null,
               content: contentRes || null,
               journey: journeyRes || null,
+              geography: geographyRes || null,
+              demographics: demographicsRes || null,
               period: period,
               token: token
             };
