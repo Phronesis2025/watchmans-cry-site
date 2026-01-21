@@ -1372,57 +1372,84 @@ export default async function handler(req, res) {
 
       case 'demographics': {
         if (!analyticsDataClient) {
+          console.error('GA4 client not initialized for demographics metric');
           return res.status(503).json({ error: 'GA4 not configured' });
         }
 
         const { startDate, endDate } = getGA4DateRange(period);
+        console.log(`Fetching demographics from GA4: ${startDate} to ${endDate}`);
 
-        // Get age, gender, and interests
-        const [ageResponse, genderResponse, interestsResponse] = await Promise.all([
-          analyticsDataClient.runReport({
-            property: `properties/${GA4_PROPERTY_ID}`,
-            dateRanges: [{ startDate, endDate }],
-            dimensions: [{ name: 'userAgeBracket' }],
-            metrics: [{ name: 'totalUsers' }],
-            orderBys: [{ metric: { metricName: 'totalUsers' }, desc: true }],
-          }),
-          analyticsDataClient.runReport({
-            property: `properties/${GA4_PROPERTY_ID}`,
-            dateRanges: [{ startDate, endDate }],
-            dimensions: [{ name: 'userGender' }],
-            metrics: [{ name: 'totalUsers' }],
-            orderBys: [{ metric: { metricName: 'totalUsers' }, desc: true }],
-          }),
-          analyticsDataClient.runReport({
-            property: `properties/${GA4_PROPERTY_ID}`,
-            dateRanges: [{ startDate, endDate }],
-            dimensions: [{ name: 'userInterestCategory' }],
-            metrics: [{ name: 'totalUsers' }],
-            orderBys: [{ metric: { metricName: 'totalUsers' }, desc: true }],
-            limit: 10,
-          }),
-        ]);
+        try {
+          // Get age, gender, and interests
+          // Note: Demographics may not be available if there's insufficient data or if not enabled
+          const [ageResponse, genderResponse, interestsResponse] = await Promise.all([
+            analyticsDataClient.runReport({
+              property: `properties/${GA4_PROPERTY_ID}`,
+              dateRanges: [{ startDate, endDate }],
+              dimensions: [{ name: 'userAgeBracket' }],
+              metrics: [{ name: 'totalUsers' }],
+              orderBys: [{ metric: { metricName: 'totalUsers' }, desc: true }],
+            }).catch(err => {
+              console.warn('GA4 age bracket query failed:', err.message);
+              return { rows: [] };
+            }),
+            analyticsDataClient.runReport({
+              property: `properties/${GA4_PROPERTY_ID}`,
+              dateRanges: [{ startDate, endDate }],
+              dimensions: [{ name: 'userGender' }],
+              metrics: [{ name: 'totalUsers' }],
+              orderBys: [{ metric: { metricName: 'totalUsers' }, desc: true }],
+            }).catch(err => {
+              console.warn('GA4 gender query failed:', err.message);
+              return { rows: [] };
+            }),
+            analyticsDataClient.runReport({
+              property: `properties/${GA4_PROPERTY_ID}`,
+              dateRanges: [{ startDate, endDate }],
+              dimensions: [{ name: 'userInterestCategory' }],
+              metrics: [{ name: 'totalUsers' }],
+              orderBys: [{ metric: { metricName: 'totalUsers' }, desc: true }],
+              limit: 10,
+            }).catch(err => {
+              console.warn('GA4 interests query failed:', err.message);
+              return { rows: [] };
+            }),
+          ]);
 
-        const age = (ageResponse.rows || []).map(row => ({
-          age: row.dimensionValues[0].value || 'Unknown',
-          count: parseInt(row.metricValues[0].value || '0')
-        }));
+          const age = (ageResponse.rows || []).map(row => ({
+            age: row.dimensionValues[0].value || 'Unknown',
+            count: parseInt(row.metricValues[0].value || '0')
+          }));
 
-        const gender = (genderResponse.rows || []).map(row => ({
-          gender: row.dimensionValues[0].value || 'Unknown',
-          count: parseInt(row.metricValues[0].value || '0')
-        }));
+          const gender = (genderResponse.rows || []).map(row => ({
+            gender: row.dimensionValues[0].value || 'Unknown',
+            count: parseInt(row.metricValues[0].value || '0')
+          }));
 
-        const interests = (interestsResponse.rows || []).map(row => ({
-          interest: row.dimensionValues[0].value || 'Unknown',
-          count: parseInt(row.metricValues[0].value || '0')
-        }));
+          const interests = (interestsResponse.rows || []).map(row => ({
+            interest: row.dimensionValues[0].value || 'Unknown',
+            count: parseInt(row.metricValues[0].value || '0')
+          }));
 
-        result = {
-          age,
-          gender,
-          interests
-        };
+          result = {
+            age,
+            gender,
+            interests
+          };
+        } catch (ga4Error) {
+          console.error('GA4 API error in demographics:', ga4Error);
+          console.error('Error details:', {
+            message: ga4Error.message,
+            code: ga4Error.code,
+            status: ga4Error.status
+          });
+          // Return empty demographics instead of throwing
+          result = {
+            age: [],
+            gender: [],
+            interests: []
+          };
+        }
         break;
       }
 
