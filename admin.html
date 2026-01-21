@@ -584,31 +584,65 @@
               </div>
               ` : ''}
 
-              <!-- Screen Time Heatmap (Most Time Spent) -->
-              ${contentRes?.screen_time?.length > 0 ? `
+              <!-- Section View Time List -->
+              ${contentRes?.screen_time?.length > 0 ? (() => {
+                // Filter to only show homepage sections
+                const sections = contentRes.screen_time
+                  .filter(page => page.path && page.path.startsWith('/section/'))
+                  .map(page => ({
+                    name: getPageName(page.path),
+                    totalTime: page.total_screen_time,
+                    avgTime: page.avg_screen_time
+                  }))
+                  .sort((a, b) => b.totalTime - a.totalTime);
+                
+                if (sections.length === 0) {
+                  return '<p style="color: #666; font-style: italic;">No section data available yet.</p>';
+                }
+                
+                return `
               <div style="margin-bottom: 2em; padding: 1em; background-color: rgba(244, 232, 212, 0.3); border: 1px solid #000;">
-                <h4 style="margin-top: 0; margin-bottom: 1em;">Screen Time Heatmap (Where Users Spend Most Time)</h4>
-                <p style="font-size: 0.9em; color: #666; margin-bottom: 1em;">Visual representation of which pages/sections get the most screen time. Darker colors indicate more total time spent reading.</p>
-                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1em;">
-                  ${contentRes.screen_time.slice(0, 20).map(page => {
-                    const maxTime = Math.max(...contentRes.screen_time.map(p => p.total_screen_time));
-                    const intensity = maxTime > 0 ? Math.round((page.total_screen_time / maxTime) * 100) : 0;
-                    const bgColor = `rgba(0, 0, 0, ${0.3 + (intensity / 100) * 0.7})`;
-                    const hours = Math.floor(page.total_screen_time / 3600);
-                    const minutes = Math.floor((page.total_screen_time % 3600) / 60);
-                    const timeDisplay = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
-                    return `
-                      <div style="padding: 1em; background-color: ${bgColor}; color: #f4e8d4; border: 1px solid #000; text-align: center;">
-                        <p style="font-weight: 700; margin-bottom: 0.5em; font-size: 0.9em;">${escapeHtml(getPageName(page.path))}</p>
-                        <p style="font-size: 1.5em; font-weight: 700; margin: 0;">${timeDisplay}</p>
-                        <p style="font-size: 0.75em; margin-top: 0.25em; opacity: 0.9;">total screen time</p>
-                        <p style="font-size: 0.7em; margin-top: 0.25em; opacity: 0.8;">${Math.floor(page.avg_screen_time / 60)}m avg per visit</p>
-                      </div>
-                    `;
-                  }).join('')}
-                </div>
+                <h4 style="margin-top: 0; margin-bottom: 1em;">Section View Time</h4>
+                <p style="font-size: 0.9em; color: #666; margin-bottom: 1em;">Time spent reading each section of the homepage.</p>
+                <table style="width: 100%; border-collapse: collapse; border: 1px solid #000;">
+                  <thead>
+                    <tr style="background-color: rgba(0, 0, 0, 0.1); border-bottom: 2px solid #000;">
+                      <th style="padding: 0.75em; text-align: left; border: 1px solid #000; font-weight: 700;">Section</th>
+                      <th style="padding: 0.75em; text-align: right; border: 1px solid #000; font-weight: 700;">Total View Time</th>
+                      <th style="padding: 0.75em; text-align: right; border: 1px solid #000; font-weight: 700;">Avg per Visit</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${sections.map((section, index) => {
+                      const hours = Math.floor(section.totalTime / 3600);
+                      const minutes = Math.floor((section.totalTime % 3600) / 60);
+                      const seconds = section.totalTime % 60;
+                      let totalTimeDisplay = '';
+                      if (hours > 0) {
+                        totalTimeDisplay = `${hours}h ${minutes}m`;
+                      } else if (minutes > 0) {
+                        totalTimeDisplay = `${minutes}m ${seconds}s`;
+                      } else {
+                        totalTimeDisplay = `${seconds}s`;
+                      }
+                      
+                      const avgMinutes = Math.floor(section.avgTime / 60);
+                      const avgSeconds = section.avgTime % 60;
+                      const avgTimeDisplay = avgMinutes > 0 ? `${avgMinutes}m ${avgSeconds}s` : `${avgSeconds}s`;
+                      
+                      return `
+                        <tr style="border-bottom: 1px solid #000; ${index % 2 === 0 ? 'background-color: rgba(244, 232, 212, 0.1);' : ''}">
+                          <td style="padding: 0.75em; border: 1px solid #000; font-weight: 600;">${escapeHtml(section.name)}</td>
+                          <td style="padding: 0.75em; border: 1px solid #000; text-align: right;">${totalTimeDisplay}</td>
+                          <td style="padding: 0.75em; border: 1px solid #000; text-align: right;">${avgTimeDisplay}</td>
+                        </tr>
+                      `;
+                    }).join('')}
+                  </tbody>
+                </table>
               </div>
-              ` : ''}
+              `;
+              })() : '<p style="color: #666; font-style: italic;">No section data available yet.</p>'}
 
               <!-- Page Views Heatmap -->
               ${contentRes?.top_pages?.length > 0 ? `
