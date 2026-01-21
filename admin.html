@@ -1271,13 +1271,22 @@
           } else if (level === 'hours') {
             let dayLabel = 'selected day';
             if (selectedDay) {
+              // selectedDay is in YYYY-MM-DD format
               const parts = selectedDay.split('-');
               if (parts.length === 3) {
                 const year = parseInt(parts[0]);
-                const month = parseInt(parts[1]) - 1;
+                const month = parseInt(parts[1]) - 1; // Month is 0-indexed
                 const day = parseInt(parts[2]);
+                // Create date in local timezone (not UTC) to avoid timezone shifts
                 const date = new Date(year, month, day);
+                // Format with ordinal (1st, 2nd, 3rd, etc.)
+                const dayNum = date.getDate();
+                const suffix = dayNum === 1 || dayNum === 21 || dayNum === 31 ? 'st' :
+                              dayNum === 2 || dayNum === 22 ? 'nd' :
+                              dayNum === 3 || dayNum === 23 ? 'rd' : 'th';
                 dayLabel = date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+                // Replace the numeric day with ordinal version
+                dayLabel = dayLabel.replace(/\b(\d+)\b/, `$1${suffix}`);
               }
             }
             if (indicator) indicator.textContent = `Viewing: Hours on ${dayLabel}`;

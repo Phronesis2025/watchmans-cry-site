@@ -431,11 +431,13 @@ export default async function handler(req, res) {
 
       case 'visits': {
         // Recent individual visits with timestamp, country, and returning flag
+        // Only show actual page visits (not section tracking or time updates)
         let query = supabase
           .from('page_views')
-          .select('created_at, page_path, country, session_id')
+          .select('created_at, page_path, country, session_id, hashed_ip')
+          .not('page_path', 'like', '/section/%') // Exclude section tracking paths
           .order('created_at', { ascending: false })
-          .limit(200);
+          .limit(500); // Get more to filter down to unique visits
 
         if (dateFilter) {
           query = query.gte('created_at', dateFilter);
@@ -454,9 +456,30 @@ export default async function handler(req, res) {
           break;
         }
 
+        // Filter to unique page visits per session (first visit to each page per session)
+        // This removes duplicate time updates and shows actual page navigation
+        const uniqueVisits = [];
+        const seenVisits = new Set(); // Track session_id + normalized path combinations
+        
+        visitsRaw.forEach(v => {
+          const normalizedPath = normalizePagePath(v.page_path || '/');
+          const visitKey = `${v.session_id || 'no-session'}:${normalizedPath}`;
+          
+          // Only include if we haven't seen this session+page combination
+          // Take the first (most recent) occurrence since we're ordered DESC
+          if (!seenVisits.has(visitKey)) {
+            seenVisits.add(visitKey);
+            uniqueVisits.push(v);
+          }
+        });
+
+        // Sort by created_at descending and limit to 200 most recent unique visits
+        uniqueVisits.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+        const finalVisits = uniqueVisits.slice(0, 200);
+
         // Get session info to determine returning visitors
         const sessionIds = Array.from(new Set(
-          visitsRaw.map(v => v.session_id).filter(id => !!id)
+          finalVisits.map(v => v.session_id).filter(id => !!id)
         ));
 
         const sessionMap = {};
@@ -496,7 +519,7 @@ export default async function handler(req, res) {
           return new Date(year, month, day, hour, minute, second);
         }
 
-        const visits = visitsRaw.map(v => {
+        const visits = finalVisits.map(v => {
           const session = v.session_id ? sessionMap[v.session_id] : null;
           const cstDate = v.created_at ? toCST(new Date(v.created_at)) : null;
 
