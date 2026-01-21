@@ -40,6 +40,15 @@ function getExcludedIPHashes() {
   return excludedIPs.split(',').map(hash => hash.trim()).filter(hash => hash.length > 0);
 }
 
+// Normalize page paths - combine / and /index.html as the same page
+function normalizePagePath(path) {
+  if (!path) return '/';
+  if (path === '/index.html' || path === 'index.html') {
+    return '/';
+  }
+  return path;
+}
+
 // Get date filter based on period
 function getDateFilter(period) {
   const now = new Date();
@@ -157,11 +166,11 @@ export default async function handler(req, res) {
 
         const { data: allPages } = await topPagesQuery;
 
-        // Aggregate by page path
+        // Aggregate by page path (normalize /index.html to /)
         const pageCounts = {};
         if (allPages) {
           allPages.forEach(page => {
-            const path = page.page_path || '/';
+            const path = normalizePagePath(page.page_path || '/');
             pageCounts[path] = (pageCounts[path] || 0) + 1;
           });
         }
@@ -189,9 +198,27 @@ export default async function handler(req, res) {
 
         const { data: dailyViews } = await dailyQuery;
 
-        // Helper function to convert UTC to Central Time
+        // Helper function to convert UTC to Central Time (CST/CDT)
         function toCST(date) {
-          return new Date(date.toLocaleString('en-US', { timeZone: 'America/Chicago' }));
+          const utcDate = new Date(date);
+          const formatter = new Intl.DateTimeFormat('en-US', {
+            timeZone: 'America/Chicago',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false
+          });
+          const parts = formatter.formatToParts(utcDate);
+          const year = parseInt(parts.find(p => p.type === 'year').value);
+          const month = parseInt(parts.find(p => p.type === 'month').value) - 1;
+          const day = parseInt(parts.find(p => p.type === 'day').value);
+          const hour = parseInt(parts.find(p => p.type === 'hour').value);
+          const minute = parseInt(parts.find(p => p.type === 'minute').value);
+          const second = parseInt(parts.find(p => p.type === 'second').value);
+          return new Date(year, month, day, hour, minute, second);
         }
 
         // Group by day (in Central Time)
@@ -371,7 +398,7 @@ export default async function handler(req, res) {
               totalTime += item.time_on_page;
               count++;
 
-              const path = item.page_path || '/';
+              const path = normalizePagePath(item.page_path || '/');
               if (!pageTimes[path]) {
                 pageTimes[path] = { total: 0, count: 0 };
               }
@@ -510,9 +537,30 @@ export default async function handler(req, res) {
           break;
         }
 
-        // Helper to convert UTC to CST and format
+        // Helper to convert UTC to CST/CDT (Central Time)
+        // More reliable method using Intl.DateTimeFormat
         function toCST(date) {
-          return new Date(date.toLocaleString('en-US', { timeZone: 'America/Chicago' }));
+          const utcDate = new Date(date);
+          // Get CST date components using Intl API
+          const formatter = new Intl.DateTimeFormat('en-US', {
+            timeZone: 'America/Chicago',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false
+          });
+          const parts = formatter.formatToParts(utcDate);
+          const year = parseInt(parts.find(p => p.type === 'year').value);
+          const month = parseInt(parts.find(p => p.type === 'month').value) - 1; // 0-indexed
+          const day = parseInt(parts.find(p => p.type === 'day').value);
+          const hour = parseInt(parts.find(p => p.type === 'hour').value);
+          const minute = parseInt(parts.find(p => p.type === 'minute').value);
+          const second = parseInt(parts.find(p => p.type === 'second').value);
+          // Create new date in local timezone with CST values
+          return new Date(year, month, day, hour, minute, second);
         }
 
         // Group by month, day, and hour
@@ -581,10 +629,11 @@ export default async function handler(req, res) {
           const formattedDays = Object.entries(dayMap)
             .map(([dayKey, count]) => {
               const [year, monthNum, dayNum] = dayKey.split('-');
-              const date = new Date(year, parseInt(monthNum) - 1, parseInt(dayNum));
+              // Use CST date to get correct day name
+              const cstDate = new Date(year, parseInt(monthNum) - 1, parseInt(dayNum));
               return {
                 day: dayKey,
-                label: `${monthNames[parseInt(monthNum) - 1]} ${dayNum}, ${year} (${dayNames[date.getDay()]})`,
+                label: `${monthNames[parseInt(monthNum) - 1]} ${dayNum}, ${year} (${dayNames[cstDate.getDay()]})`,
                 count: count
               };
             })
@@ -1124,7 +1173,7 @@ export default async function handler(req, res) {
 
         if (views) {
           views.forEach(view => {
-            const path = view.page_path || '/';
+            const path = normalizePagePath(view.page_path || '/');
             
             if (!pageStats[path]) {
               pageStats[path] = {
@@ -1221,10 +1270,19 @@ export default async function handler(req, res) {
 
         editionPerformance.sort((a, b) => b.engagement_score - a.engagement_score);
 
+        // Calculate total screen time per page for heatmap
+        const screenTimeData = Object.values(pageStats).map(page => ({
+          path: page.path,
+          total_screen_time: page.total_time, // Total seconds spent on this page
+          avg_screen_time: page.time_count > 0 ? Math.round(page.total_time / page.time_count) : 0,
+          views: page.views
+        })).sort((a, b) => b.total_screen_time - a.total_screen_time);
+
         result = {
           top_pages: pagePerformance.slice(0, 15),
           editions: editionPerformance,
-          engagement_rankings: pagePerformance.slice(0, 10)
+          engagement_rankings: pagePerformance.slice(0, 10),
+          screen_time: screenTimeData // For heatmap visualization
         };
         break;
       }
@@ -1282,12 +1340,12 @@ export default async function handler(req, res) {
               const pages = sessionPages[session.session_id] || [];
               
               if (pages.length > 0) {
-                // First page is entry
-                const entryPath = pages[0].page_path || '/';
+                // First page is entry (normalize path)
+                const entryPath = normalizePagePath(pages[0].page_path || '/');
                 entryPages[entryPath] = (entryPages[entryPath] || 0) + 1;
                 
-                // Last page is exit
-                const exitPath = pages[pages.length - 1].page_path || '/';
+                // Last page is exit (normalize path)
+                const exitPath = normalizePagePath(pages[pages.length - 1].page_path || '/');
                 exitPages[exitPath] = (exitPages[exitPath] || 0) + 1;
               }
             });
@@ -1335,7 +1393,7 @@ export default async function handler(req, res) {
         const pageViewCounts = {};
         if (allPageViews) {
           allPageViews.forEach(view => {
-            const path = view.page_path || '/';
+            const path = normalizePagePath(view.page_path || '/');
             pageViewCounts[path] = (pageViewCounts[path] || 0) + 1;
           });
         }

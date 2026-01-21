@@ -112,10 +112,22 @@
         }
 
         // Convert page path to common name
+        // Normalize page path - combine / and /index.html
+        function normalizePagePath(path) {
+          if (!path) return '/';
+          // Normalize /index.html to /
+          if (path === '/index.html' || path === 'index.html') {
+            return '/';
+          }
+          return path;
+        }
+
         function getPageName(path) {
+          // Normalize path first
+          const normalizedPath = normalizePagePath(path);
+          
           const pageNames = {
             '/': 'Home',
-            '/index.html': 'Home',
             '/about.html': 'About',
             '/submit.html': 'Submit',
             '/staff.html': 'Voices',
@@ -127,13 +139,13 @@
           };
           
           // Check exact match first
-          if (pageNames[path]) {
-            return pageNames[path];
+          if (pageNames[normalizedPath]) {
+            return pageNames[normalizedPath];
           }
           
           // Check if it's an archive edition
-          if (path.startsWith('/archive/')) {
-            const match = path.match(/edition-(\d{4}-\d{2}-\d{2})/);
+          if (normalizedPath.startsWith('/archive/')) {
+            const match = normalizedPath.match(/edition-(\d{4}-\d{2}-\d{2})/);
             if (match) {
               return `Edition ${match[1]}`;
             }
@@ -141,7 +153,7 @@
           }
           
           // Fallback: return path without leading slash
-          return path.replace(/^\//, '') || 'Home';
+          return normalizedPath.replace(/^\//, '') || 'Home';
         }
 
         // Check if user is already signed in on page load
@@ -389,7 +401,7 @@
                   ${engagementRes?.return_rate !== undefined ? `
                     <p style="font-size: 0.75em; color: #666; margin-top: 0.25em;">${engagementRes.return_rate}% returning</p>
                   ` : ''}
-                  <p style="font-size: 0.7em; color: #666; margin-top: 0.5em; font-style: italic;">Distinct individuals visiting your site. Higher numbers indicate growing audience reach.</p>
+                  <p style="font-size: 0.85em; color: #666; margin-top: 0.5em; font-style: italic;">Distinct individuals visiting your site. Higher numbers indicate growing audience reach.</p>
                 </div>
                 
                 <!-- Engagement Card (New) -->
@@ -428,7 +440,7 @@
                          engagementRes.time_distribution['5min+']) * 100) || 0)}% read 2+ min
                     </p>
                   ` : ''}
-                  <p style="font-size: 0.7em; color: #666; margin-top: 0.5em; font-style: italic;">Average time visitors spend reading (only counts when tab is visible). Higher indicates deeper engagement.</p>
+                  <p style="font-size: 0.85em; color: #666; margin-top: 0.5em; font-style: italic;">Average time visitors spend reading (only counts when tab is visible). Higher indicates deeper engagement.</p>
                 </div>
               </div>
 
@@ -440,15 +452,14 @@
               </div>
               ` : ''}
 
-              <!-- Visitor Activity Timeline Chart (Vertical Bar with Button Selector) -->
+              <!-- Visitor Activity Timeline Chart (Click to Drill Down) -->
               ${timelineRes?.months?.length > 0 ? `
               <div style="margin-bottom: 2em; padding: 1em; background-color: rgba(244, 232, 212, 0.3); border: 1px solid #000;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1em; flex-wrap: wrap; gap: 0.5em;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1em;">
                   <h4 style="margin: 0;">Visitor Activity Timeline</h4>
-                  <div style="display: flex; gap: 0.5em;">
-                    <button id="timeline-btn-months" onclick="switchTimelineView('months')" style="padding: 0.5em 1em; background-color: #000; color: #f4e8d4; border: none; font-family: 'EB Garamond', serif; cursor: pointer; font-size: 0.9em;">Months</button>
-                    <button id="timeline-btn-days" onclick="switchTimelineView('days')" style="padding: 0.5em 1em; background-color: #8b4513; color: #f4e8d4; border: none; font-family: 'EB Garamond', serif; cursor: pointer; font-size: 0.9em;">Days</button>
-                    <button id="timeline-btn-hours" onclick="switchTimelineView('hours')" style="padding: 0.5em 1em; background-color: #8b4513; color: #f4e8d4; border: none; font-family: 'EB Garamond', serif; cursor: pointer; font-size: 0.9em;">Hours</button>
+                  <div id="timeline-breadcrumb" style="font-size: 0.9em; color: #666;">
+                    <span id="timeline-level-indicator">Viewing: Months (click a bar to drill down)</span>
+                    <button id="timeline-back-btn" onclick="goBackTimeline()" style="margin-left: 0.5em; padding: 0.25em 0.5em; background-color: #000; color: #f4e8d4; border: none; font-family: 'EB Garamond', serif; cursor: pointer; font-size: 0.85em; display: none;">← Back</button>
                   </div>
                 </div>
                 <canvas id="timelineChart" style="max-height: 500px;"></canvas>
@@ -524,15 +535,41 @@
               </div>
               ` : ''}
 
-              <!-- Page Sections Heatmap -->
+              <!-- Screen Time Heatmap (Most Time Spent) -->
+              ${contentRes?.screen_time?.length > 0 ? `
+              <div style="margin-bottom: 2em; padding: 1em; background-color: rgba(244, 232, 212, 0.3); border: 1px solid #000;">
+                <h4 style="margin-top: 0; margin-bottom: 1em;">Screen Time Heatmap (Where Users Spend Most Time)</h4>
+                <p style="font-size: 0.9em; color: #666; margin-bottom: 1em;">Visual representation of which pages/sections get the most screen time. Darker colors indicate more total time spent reading.</p>
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1em;">
+                  ${contentRes.screen_time.slice(0, 20).map(page => {
+                    const maxTime = Math.max(...contentRes.screen_time.map(p => p.total_screen_time));
+                    const intensity = maxTime > 0 ? Math.round((page.total_screen_time / maxTime) * 100) : 0;
+                    const bgColor = `rgba(0, 0, 0, ${0.3 + (intensity / 100) * 0.7})`;
+                    const hours = Math.floor(page.total_screen_time / 3600);
+                    const minutes = Math.floor((page.total_screen_time % 3600) / 60);
+                    const timeDisplay = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+                    return `
+                      <div style="padding: 1em; background-color: ${bgColor}; color: #f4e8d4; border: 1px solid #000; text-align: center;">
+                        <p style="font-weight: 700; margin-bottom: 0.5em; font-size: 0.9em;">${escapeHtml(getPageName(page.path))}</p>
+                        <p style="font-size: 1.5em; font-weight: 700; margin: 0;">${timeDisplay}</p>
+                        <p style="font-size: 0.75em; margin-top: 0.25em; opacity: 0.9;">total screen time</p>
+                        <p style="font-size: 0.7em; margin-top: 0.25em; opacity: 0.8;">${Math.floor(page.avg_screen_time / 60)}m avg per visit</p>
+                      </div>
+                    `;
+                  }).join('')}
+                </div>
+              </div>
+              ` : ''}
+
+              <!-- Page Views Heatmap -->
               ${contentRes?.top_pages?.length > 0 ? `
               <div style="margin-bottom: 2em; padding: 1em; background-color: rgba(244, 232, 212, 0.3); border: 1px solid #000;">
-                <h4 style="margin-top: 0; margin-bottom: 1em;">Page Sections Heatmap (Most Viewed Content)</h4>
-                <p style="font-size: 0.9em; color: #666; margin-bottom: 1em;">Visual representation of which pages and sections users view most. Darker colors indicate higher view counts.</p>
+                <h4 style="margin-top: 0; margin-bottom: 1em;">Page Views Heatmap (Most Viewed Content)</h4>
+                <p style="font-size: 0.9em; color: #666; margin-bottom: 1em;">Visual representation of which pages users view most. Darker colors indicate higher view counts.</p>
                 <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1em;">
                   ${contentRes.top_pages.slice(0, 15).map(page => {
                     const maxViews = Math.max(...contentRes.top_pages.map(p => p.views));
-                    const intensity = Math.round((page.views / maxViews) * 100);
+                    const intensity = maxViews > 0 ? Math.round((page.views / maxViews) * 100) : 0;
                     const bgColor = `rgba(0, 0, 0, ${0.3 + (intensity / 100) * 0.7})`;
                     return `
                       <div style="padding: 1em; background-color: ${bgColor}; color: #f4e8d4; border: 1px solid #000; text-align: center;">
@@ -716,8 +753,15 @@
               renderTrafficTrendChart(pageviewsRes.daily);
             }
             if (timelineRes?.months?.length > 0) {
+              // Store original timeline data
+              window.originalTimelineData = timelineRes;
+              window.timelineState = {
+                level: 'months',
+                selectedMonth: null,
+                selectedDay: null
+              };
               // Initialize timeline with months view
-              switchTimelineView('months');
+              renderTimelineChart(timelineRes, 'months', null, null);
             }
             if (timelineRes?.day_of_week?.length > 0) {
               renderDayOfWeekChart(timelineRes.day_of_week);
@@ -899,7 +943,7 @@
                   color: '#000',
                   font: {
                     family: "'EB Garamond', serif",
-                    size: 10,
+                    size: 13,
                     weight: 'bold'
                   },
                   formatter: function(value) {
@@ -1096,108 +1140,99 @@
           }
         }
 
-        // Render Timeline Chart (Month -> Day -> Hour drill-down)
-        // Switch timeline view (months/days/hours)
-        async function switchTimelineView(viewType) {
+        // Drill down to days for a selected month
+        async function drillDownToDays(month) {
           const analyticsData = window.currentAnalyticsData;
           if (!analyticsData || !analyticsData.token) {
             console.error('Analytics data not available');
             return;
           }
 
-          // Update button styles
-          document.getElementById('timeline-btn-months').style.backgroundColor = viewType === 'months' ? '#000' : '#8b4513';
-          document.getElementById('timeline-btn-days').style.backgroundColor = viewType === 'days' ? '#000' : '#8b4513';
-          document.getElementById('timeline-btn-hours').style.backgroundColor = viewType === 'hours' ? '#000' : '#8b4513';
-
           try {
             const period = analyticsData.period || '7d';
-            let url = `/api/analytics-data?metric=timeline&period=${period}`;
-            
-            // For days and hours, we need to fetch aggregated data
-            // The API will return all days/hours when no month/day filter is provided
-            
-            const response = await fetch(url, {
+            const response = await fetch(`/api/analytics-data?metric=timeline&period=${period}&month=${month}`, {
               headers: { 'Authorization': `Bearer ${analyticsData.token}` }
             });
 
             if (response.ok) {
               const data = await response.json();
-              
-              // For days view, aggregate all days from all months
-              if (viewType === 'days' && data.months && data.months.length > 0) {
-                // Fetch days for each month and aggregate
-                const allDays = {};
-                for (const month of data.months) {
-                  const dayResponse = await fetch(`${url}&month=${month.month}`, {
-                    headers: { 'Authorization': `Bearer ${analyticsData.token}` }
-                  });
-                  if (dayResponse.ok) {
-                    const dayData = await dayResponse.json();
-                    if (dayData.days) {
-                      dayData.days.forEach(d => {
-                        allDays[d.day] = (allDays[d.day] || 0) + d.count;
-                      });
-                    }
-                  }
-                }
-                // Convert to array format
-                const sortedDays = Object.entries(allDays)
-                  .map(([day, count]) => ({
-                    day: day,
-                    count: count,
-                    label: new Date(day).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-                  }))
-                  .sort((a, b) => a.day.localeCompare(b.day));
-                data.days = sortedDays;
-              }
-              
-              // For hours view, aggregate all hours from all days
-              if (viewType === 'hours' && data.months && data.months.length > 0) {
-                const allHours = {};
-                for (let i = 0; i < 24; i++) {
-                  allHours[i] = 0;
-                }
-                // Fetch hours for each month's days
-                for (const month of data.months) {
-                  const dayResponse = await fetch(`${url}&month=${month.month}`, {
-                    headers: { 'Authorization': `Bearer ${analyticsData.token}` }
-                  });
-                  if (dayResponse.ok) {
-                    const dayData = await dayResponse.json();
-                    if (dayData.days) {
-                      for (const day of dayData.days) {
-                        const hourResponse = await fetch(`${url}&month=${month.month}&day=${day.day}`, {
-                          headers: { 'Authorization': `Bearer ${analyticsData.token}` }
-                        });
-                        if (hourResponse.ok) {
-                          const hourData = await hourResponse.json();
-                          if (hourData.hours) {
-                            hourData.hours.forEach(h => {
-                              allHours[h.hour] = (allHours[h.hour] || 0) + h.count;
-                            });
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-                data.hours = Object.entries(allHours).map(([hour, count]) => ({
-                  hour: parseInt(hour),
-                  count: count
-                }));
-              }
-              
-              renderTimelineChart(data, viewType);
+              window.timelineState.level = 'days';
+              window.timelineState.selectedMonth = month;
+              renderTimelineChart(data, 'days', month, null);
             } else {
-              console.error('Failed to fetch timeline data');
+              console.error('Failed to fetch days data');
             }
           } catch (error) {
-            console.error('Error switching timeline view:', error);
+            console.error('Error drilling down to days:', error);
           }
         }
 
-        function renderTimelineChart(data, level) {
+        // Drill down to hours for a selected day
+        async function drillDownToHours(day, month) {
+          const analyticsData = window.currentAnalyticsData;
+          if (!analyticsData || !analyticsData.token) {
+            console.error('Analytics data not available');
+            return;
+          }
+
+          try {
+            const period = analyticsData.period || '7d';
+            const response = await fetch(`/api/analytics-data?metric=timeline&period=${period}&month=${month}&day=${day}`, {
+              headers: { 'Authorization': `Bearer ${analyticsData.token}` }
+            });
+
+            if (response.ok) {
+              const data = await response.json();
+              window.timelineState.level = 'hours';
+              window.timelineState.selectedDay = day;
+              renderTimelineChart(data, 'hours', month, day);
+            } else {
+              console.error('Failed to fetch hours data');
+            }
+          } catch (error) {
+            console.error('Error drilling down to hours:', error);
+          }
+        }
+
+        // Go back in timeline hierarchy
+        async function goBackTimeline() {
+          const state = window.timelineState;
+          const analyticsData = window.currentAnalyticsData;
+          
+          if (state.level === 'days') {
+            // Go back to months
+            if (window.originalTimelineData) {
+              window.timelineState.level = 'months';
+              window.timelineState.selectedMonth = null;
+              renderTimelineChart(window.originalTimelineData, 'months', null, null);
+            } else {
+              // Reload from API
+              try {
+                const period = analyticsData.period || '7d';
+                const token = analyticsData.token;
+                const response = await fetch(`/api/analytics-data?metric=timeline&period=${period}`, {
+                  headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (response.ok) {
+                  const data = await response.json();
+                  window.originalTimelineData = data;
+                  window.timelineState.level = 'months';
+                  window.timelineState.selectedMonth = null;
+                  renderTimelineChart(data, 'months', null, null);
+                }
+              } catch (error) {
+                console.error('Error reloading timeline:', error);
+              }
+            }
+          } else if (state.level === 'hours') {
+            // Go back to days
+            if (state.selectedMonth) {
+              await drillDownToDays(state.selectedMonth);
+            }
+          }
+        }
+
+        function renderTimelineChart(data, level, selectedMonth = null, selectedDay = null) {
           // Destroy existing chart if it exists
           if (window.timelineChartInstance) {
             window.timelineChartInstance.destroy();
@@ -1222,7 +1257,14 @@
               labels = ['No data'];
               values = [0];
             } else {
-              labels = data.days.map(d => d.label || new Date(d.day).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+              // Use the label from API which is already in CST, or format manually
+              labels = data.days.map(d => {
+                if (d.label) return d.label;
+                // Format manually using CST date
+                const [year, month, day] = d.day.split('-');
+                const date = new Date(year, parseInt(month) - 1, parseInt(day));
+                return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+              });
               values = data.days.map(d => d.count);
             }
           } else if (level === 'hours') {
@@ -1244,6 +1286,23 @@
             }
           }
 
+          // Update breadcrumb and back button
+          const indicator = document.getElementById('timeline-level-indicator');
+          const backBtn = document.getElementById('timeline-back-btn');
+          
+          if (level === 'months') {
+            if (indicator) indicator.textContent = 'Viewing: Months (click a bar to drill down)';
+            if (backBtn) backBtn.style.display = 'none';
+          } else if (level === 'days') {
+            const monthLabel = selectedMonth ? new Date(selectedMonth + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'selected month';
+            if (indicator) indicator.textContent = `Viewing: Days in ${monthLabel} (click a bar to drill down)`;
+            if (backBtn) backBtn.style.display = 'inline-block';
+          } else if (level === 'hours') {
+            const dayLabel = selectedDay ? new Date(selectedDay).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'selected day';
+            if (indicator) indicator.textContent = `Viewing: Hours on ${dayLabel}`;
+            if (backBtn) backBtn.style.display = 'inline-block';
+          }
+
           const chartConfig = {
             type: 'bar',
             data: {
@@ -1260,12 +1319,30 @@
               indexAxis: 'x', // Vertical bars
               responsive: true,
               maintainAspectRatio: true,
+              onClick: async function(event, elements) {
+                if (elements.length > 0 && level !== 'hours') {
+                  const clickedIndex = elements[0].index;
+                  
+                  if (level === 'months') {
+                    // Drill down to days
+                    const selectedMonth = data.months[clickedIndex].month;
+                    await drillDownToDays(selectedMonth);
+                  } else if (level === 'days') {
+                    // Drill down to hours
+                    const selectedDay = data.days[clickedIndex].day;
+                    await drillDownToHours(selectedDay, selectedMonth);
+                  }
+                }
+              },
+              onHover: function(event, elements) {
+                event.native.target.style.cursor = (level !== 'hours' && elements.length > 0) ? 'pointer' : 'default';
+              },
               plugins: {
                 legend: {
                   display: false
                 },
                 tooltip: {
-                  enabled: false // Disable hover tooltips
+                  enabled: false
                 },
                 datalabels: {
                   anchor: 'end',
@@ -1273,7 +1350,7 @@
                   color: '#000',
                   font: {
                     family: "'EB Garamond', serif",
-                    size: 11,
+                    size: 13,
                     weight: 'bold'
                   },
                   formatter: function(value) {
@@ -1288,7 +1365,7 @@
                     color: '#000',
                     font: {
                       family: "'EB Garamond', serif",
-                      size: 11
+                      size: 12
                     },
                     maxRotation: level === 'hours' ? 0 : 45,
                     minRotation: level === 'hours' ? 0 : 45
@@ -1303,7 +1380,7 @@
                     color: '#000',
                     font: {
                       family: "'EB Garamond', serif",
-                      size: 12
+                      size: 13
                     },
                     stepSize: 1
                   },
@@ -1313,7 +1390,7 @@
                 }
               }
             },
-            plugins: [ChartDataLabels] // Add data labels plugin
+            plugins: [ChartDataLabels]
           };
 
           window.timelineChartInstance = new Chart(ctx, chartConfig);
@@ -1330,9 +1407,11 @@
           const ctx = document.getElementById('trafficTrendChart');
           if (!ctx) return;
 
-          // Format dates for labels
+          // Format dates for labels (dates are already in CST from API)
           const labels = dailyData.map(item => {
-            const date = new Date(item.date);
+            // item.date is YYYY-MM-DD format in CST
+            const [year, month, day] = item.date.split('-');
+            const date = new Date(year, parseInt(month) - 1, parseInt(day));
             return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
           });
           const values = dailyData.map(item => item.count);
@@ -1537,7 +1616,7 @@
                   color: '#000',
                   font: {
                     family: "'EB Garamond', serif",
-                    size: 10,
+                    size: 13,
                     weight: 'bold'
                   },
                   formatter: function(value, context) {
@@ -1624,7 +1703,7 @@
                   color: '#000',
                   font: {
                     family: "'EB Garamond', serif",
-                    size: 10,
+                    size: 13,
                     weight: 'bold'
                   },
                   formatter: function(value, context) {
@@ -1719,7 +1798,7 @@
                   color: '#fff',
                   font: {
                     family: "'EB Garamond', serif",
-                    size: 12,
+                    size: 14,
                     weight: 'bold'
                   },
                   formatter: function(value, context) {
