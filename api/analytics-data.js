@@ -1,13 +1,32 @@
 // Vercel Serverless Function: Analytics Data Endpoint
 // Returns aggregated analytics data for admin dashboard
+// Now uses Google Analytics 4 (GA4) API instead of Supabase
 
 import { createClient } from '@supabase/supabase-js';
+import { BetaAnalyticsDataClient } from '@google-analytics/data';
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://ikksmrbqrirvenqlylxo.supabase.co';
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlra3NtcmJxcmlydmVucWx5bHhvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgxODI5ODgsImV4cCI6MjA4Mzc1ODk4OH0.1pKE6_LFTii8R-xY8WvWlXR23mXW3sUpPpKniL9fFvc';
 // Use service role key for admin queries (bypasses RLS)
 // This is safe because we verify authentication before using it
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+// GA4 Configuration
+const GA4_PROPERTY_ID = process.env.GA4_PROPERTY_ID || '520877834';
+const GA4_SERVICE_ACCOUNT_KEY = process.env.GA4_SERVICE_ACCOUNT_KEY;
+
+// Initialize GA4 client if credentials are available
+let analyticsDataClient = null;
+if (GA4_SERVICE_ACCOUNT_KEY) {
+  try {
+    const credentials = JSON.parse(GA4_SERVICE_ACCOUNT_KEY);
+    analyticsDataClient = new BetaAnalyticsDataClient({
+      credentials: credentials
+    });
+  } catch (error) {
+    console.error('Failed to initialize GA4 client:', error);
+  }
+}
 
 // Verify Supabase authentication token
 async function verifyAuth(authHeader) {
@@ -67,6 +86,39 @@ function getDateFilter(period) {
   // 'all' means no date filter
 
   return startDate ? startDate.toISOString() : null;
+}
+
+// Get GA4 date range based on period
+function getGA4DateRange(period) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  const formatDate = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const endDate = formatDate(today);
+  let startDate;
+
+  if (period === '7d') {
+    const start = new Date(today);
+    start.setDate(start.getDate() - 6); // 7 days including today
+    startDate = formatDate(start);
+  } else if (period === '30d') {
+    const start = new Date(today);
+    start.setDate(start.getDate() - 29); // 30 days including today
+    startDate = formatDate(start);
+  } else {
+    // 'all' - use a reasonable start date (e.g., 2 years ago or property creation)
+    const start = new Date(today);
+    start.setFullYear(start.getFullYear() - 2);
+    startDate = formatDate(start);
+  }
+
+  return { startDate, endDate };
 }
 
 export default async function handler(req, res) {
@@ -133,123 +185,67 @@ export default async function handler(req, res) {
 
     switch (metric) {
       case 'pageviews': {
-        let query = supabase
-          .from('page_views')
-          .select('page_path', { count: 'exact' });
-
-        if (dateFilter) {
-          query = query.gte('created_at', dateFilter);
+        if (!analyticsDataClient) {
+          return res.status(503).json({ error: 'GA4 not configured' });
         }
 
-        // Exclude filtered IPs
-        // Note: Multiple .neq() calls create AND conditions, which correctly excludes all listed IPs
-        if (excludedIPHashes.length > 0) {
-          excludedIPHashes.forEach(hash => {
-            query = query.neq('hashed_ip', hash);
-          });
-        }
+        const { startDate, endDate } = getGA4DateRange(period);
 
-        // Get total count
-        const { count: total } = await query;
+        // Get total pageviews and top pages
+        const [totalResponse, pagesResponse, dailyResponse] = await Promise.all([
+          // Total pageviews
+          analyticsDataClient.runReport({
+            property: `properties/${GA4_PROPERTY_ID}`,
+            dateRanges: [{ startDate, endDate }],
+            metrics: [{ name: 'screenPageViews' }],
+          }),
+          // Top pages
+          analyticsDataClient.runReport({
+            property: `properties/${GA4_PROPERTY_ID}`,
+            dateRanges: [{ startDate, endDate }],
+            dimensions: [{ name: 'pagePath' }],
+            metrics: [{ name: 'screenPageViews' }],
+            orderBys: [{ metric: { metricName: 'screenPageViews' }, desc: true }],
+            limit: 10,
+          }),
+          // Daily breakdown
+          analyticsDataClient.runReport({
+            property: `properties/${GA4_PROPERTY_ID}`,
+            dateRanges: [{ startDate, endDate }],
+            dimensions: [{ name: 'date' }],
+            metrics: [{ name: 'screenPageViews' }],
+            orderBys: [{ dimension: { dimensionName: 'date' } }],
+          }),
+        ]);
 
-        // Get top pages
-        let topPagesQuery = supabase
-          .from('page_views')
-          .select('page_path')
-          .order('created_at', { ascending: false });
+        // Extract total
+        const total = totalResponse.rows?.[0]?.metricValues?.[0]?.value 
+          ? parseInt(totalResponse.rows[0].metricValues[0].value) 
+          : 0;
 
-        if (dateFilter) {
-          topPagesQuery = topPagesQuery.gte('created_at', dateFilter);
-        }
+        // Extract top pages
+        const topPages = (pagesResponse.rows || []).map(row => {
+          const path = row.dimensionValues[0].value || '/';
+          const count = parseInt(row.metricValues[0].value || '0');
+          return {
+            path: normalizePagePath(path),
+            count
+          };
+        });
 
-        // Exclude filtered IPs
-        if (excludedIPHashes.length > 0) {
-          excludedIPHashes.forEach(hash => {
-            topPagesQuery = topPagesQuery.neq('hashed_ip', hash);
-          });
-        }
-
-        const { data: allPages } = await topPagesQuery;
-
-        // Aggregate by page path (normalize /index.html to /)
-        const pageCounts = {};
-        if (allPages) {
-          allPages.forEach(page => {
-            const path = normalizePagePath(page.page_path || '/');
-            pageCounts[path] = (pageCounts[path] || 0) + 1;
-          });
-        }
-
-        // Convert to array and sort
-        const topPages = Object.entries(pageCounts)
-          .map(([path, count]) => ({ path, count }))
-          .sort((a, b) => b.count - a.count)
-          .slice(0, 10);
-
-        // Get daily breakdown for trend chart
-        let dailyQuery = supabase
-          .from('page_views')
-          .select('created_at');
-
-        if (dateFilter) {
-          dailyQuery = dailyQuery.gte('created_at', dateFilter);
-        }
-
-        if (excludedIPHashes.length > 0) {
-          excludedIPHashes.forEach(hash => {
-            dailyQuery = dailyQuery.neq('hashed_ip', hash);
-          });
-        }
-
-        const { data: dailyViews } = await dailyQuery;
-
-        // Helper function to convert UTC to Central Time (CST/CDT)
-        function toCST(date) {
-          const utcDate = new Date(date);
-          const formatter = new Intl.DateTimeFormat('en-US', {
-            timeZone: 'America/Chicago',
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit',
-            hour12: false
-          });
-          const parts = formatter.formatToParts(utcDate);
-          const year = parseInt(parts.find(p => p.type === 'year').value);
-          const month = parseInt(parts.find(p => p.type === 'month').value) - 1;
-          const day = parseInt(parts.find(p => p.type === 'day').value);
-          const hour = parseInt(parts.find(p => p.type === 'hour').value);
-          const minute = parseInt(parts.find(p => p.type === 'minute').value);
-          const second = parseInt(parts.find(p => p.type === 'second').value);
-          return new Date(year, month, day, hour, minute, second);
-        }
-
-        // Group by day (in Central Time)
-        const dailyCounts = {};
-        if (dailyViews) {
-          dailyViews.forEach(view => {
-            if (view.created_at) {
-              const utcDate = new Date(view.created_at);
-              const cstDate = toCST(utcDate);
-              // Format as YYYY-MM-DD in Central Time
-              const year = cstDate.getFullYear();
-              const month = String(cstDate.getMonth() + 1).padStart(2, '0');
-              const day = String(cstDate.getDate()).padStart(2, '0');
-              const dayKey = `${year}-${month}-${day}`;
-              dailyCounts[dayKey] = (dailyCounts[dayKey] || 0) + 1;
-            }
-          });
-        }
-
-        // Convert to array and sort
-        const dailyData = Object.entries(dailyCounts)
-          .map(([date, count]) => ({ date, count }))
-          .sort((a, b) => a.date.localeCompare(b.date));
+        // Extract daily data (GA4 returns dates in YYYYMMDD format)
+        const dailyData = (dailyResponse.rows || []).map(row => {
+          const dateStr = row.dimensionValues[0].value || '';
+          // Convert YYYYMMDD to YYYY-MM-DD
+          const date = dateStr.length === 8 
+            ? `${dateStr.substring(0, 4)}-${dateStr.substring(4, 6)}-${dateStr.substring(6, 8)}`
+            : dateStr;
+          const count = parseInt(row.metricValues[0].value || '0');
+          return { date, count };
+        });
 
         result = {
-          total: total || 0,
+          total,
           top_pages: topPages,
           daily: dailyData
         };
@@ -257,117 +253,101 @@ export default async function handler(req, res) {
       }
 
       case 'visitors': {
-        let query = supabase
-          .from('visitor_sessions')
-          .select('hashed_ip, is_new_visitor', { count: 'exact' });
-
-        if (dateFilter) {
-          query = query.gte('first_visit_at', dateFilter);
+        if (!analyticsDataClient) {
+          return res.status(503).json({ error: 'GA4 not configured' });
         }
 
-        // Exclude filtered IPs
-        if (excludedIPHashes.length > 0) {
-          excludedIPHashes.forEach(hash => {
-            query = query.neq('hashed_ip', hash);
-          });
-        }
+        const { startDate, endDate } = getGA4DateRange(period);
 
-        const { data: visitors, count: totalVisitors } = await query;
+        const visitorsResponse = await analyticsDataClient.runReport({
+          property: `properties/${GA4_PROPERTY_ID}`,
+          dateRanges: [{ startDate, endDate }],
+          metrics: [
+            { name: 'totalUsers' },
+            { name: 'newUsers' },
+            { name: 'sessions' }
+          ],
+        });
 
-        // Count unique visitors (by hashed_ip)
-        const uniqueIPs = new Set();
-        let newVisitors = 0;
-
-        if (visitors) {
-          visitors.forEach(visitor => {
-            uniqueIPs.add(visitor.hashed_ip);
-            if (visitor.is_new_visitor) {
-              newVisitors++;
-            }
-          });
-        }
+        const row = visitorsResponse.rows?.[0];
+        const totalUsers = row ? parseInt(row.metricValues[0].value || '0') : 0;
+        const newUsers = row ? parseInt(row.metricValues[1].value || '0') : 0;
+        const totalSessions = row ? parseInt(row.metricValues[2].value || '0') : 0;
 
         result = {
-          unique_visitors: uniqueIPs.size,
-          new_visitors: newVisitors,
-          total_sessions: totalVisitors || 0
+          unique_visitors: totalUsers,
+          new_visitors: newUsers,
+          total_sessions: totalSessions
         };
         break;
       }
 
       case 'devices': {
-        let query = supabase
-          .from('page_views')
-          .select('device_type');
-
-        if (dateFilter) {
-          query = query.gte('created_at', dateFilter);
+        if (!analyticsDataClient) {
+          return res.status(503).json({ error: 'GA4 not configured' });
         }
 
-        // Exclude filtered IPs
-        if (excludedIPHashes.length > 0) {
-          excludedIPHashes.forEach(hash => {
-            query = query.neq('hashed_ip', hash);
-          });
-        }
+        const { startDate, endDate } = getGA4DateRange(period);
 
-        const { data: devices } = await query;
+        const devicesResponse = await analyticsDataClient.runReport({
+          property: `properties/${GA4_PROPERTY_ID}`,
+          dateRanges: [{ startDate, endDate }],
+          dimensions: [{ name: 'deviceCategory' }],
+          metrics: [{ name: 'sessions' }],
+          orderBys: [{ metric: { metricName: 'sessions' }, desc: true }],
+        });
 
-        // Aggregate by device type
-        const deviceCounts = {};
-        if (devices) {
-          devices.forEach(device => {
-            const type = device.device_type || 'desktop';
-            deviceCounts[type] = (deviceCounts[type] || 0) + 1;
-          });
-        }
-
-        // Convert to array and sort
-        const deviceArray = Object.entries(deviceCounts)
-          .map(([type, count]) => ({ type, count }))
-          .sort((a, b) => b.count - a.count);
+        const devices = (devicesResponse.rows || []).map(row => ({
+          type: row.dimensionValues[0].value || 'Unknown',
+          count: parseInt(row.metricValues[0].value || '0')
+        }));
 
         result = {
-          devices: deviceArray
+          devices
         };
         break;
       }
 
       case 'geography': {
-        let query = supabase
-          .from('page_views')
-          .select('country');
-
-        if (dateFilter) {
-          query = query.gte('created_at', dateFilter);
+        if (!analyticsDataClient) {
+          return res.status(503).json({ error: 'GA4 not configured' });
         }
 
-        // Exclude filtered IPs
-        if (excludedIPHashes.length > 0) {
-          excludedIPHashes.forEach(hash => {
-            query = query.neq('hashed_ip', hash);
-          });
-        }
+        const { startDate, endDate } = getGA4DateRange(period);
 
-        const { data: countries } = await query;
+        // Get countries and cities
+        const [countriesResponse, citiesResponse] = await Promise.all([
+          analyticsDataClient.runReport({
+            property: `properties/${GA4_PROPERTY_ID}`,
+            dateRanges: [{ startDate, endDate }],
+            dimensions: [{ name: 'country' }],
+            metrics: [{ name: 'sessions' }],
+            orderBys: [{ metric: { metricName: 'sessions' }, desc: true }],
+            limit: 20,
+          }),
+          analyticsDataClient.runReport({
+            property: `properties/${GA4_PROPERTY_ID}`,
+            dateRanges: [{ startDate, endDate }],
+            dimensions: [{ name: 'city' }],
+            metrics: [{ name: 'sessions' }],
+            orderBys: [{ metric: { metricName: 'sessions' }, desc: true }],
+            limit: 20,
+          }),
+        ]);
 
-        // Aggregate by country
-        const countryCounts = {};
-        if (countries) {
-          countries.forEach(item => {
-            const country = item.country || 'Unknown';
-            countryCounts[country] = (countryCounts[country] || 0) + 1;
-          });
-        }
+        const countries = (countriesResponse.rows || []).map(row => ({
+          country: row.dimensionValues[0].value || 'Unknown',
+          count: parseInt(row.metricValues[0].value || '0')
+        }));
 
-        // Convert to array and sort
-        const countryArray = Object.entries(countryCounts)
-          .map(([country, count]) => ({ country, count }))
-          .sort((a, b) => b.count - a.count)
-          .slice(0, 20); // Top 20 countries
+        const cities = (citiesResponse.rows || []).map(row => ({
+          city: row.dimensionValues[0].value || 'Unknown',
+          count: parseInt(row.metricValues[0].value || '0')
+        }));
 
         result = {
-          countries: countryArray
+          countries,
+          cities
         };
         break;
       }
@@ -1121,28 +1101,34 @@ export default async function handler(req, res) {
       }
 
       case 'sources': {
-        // Analyze traffic sources: Direct, Search, Social, Other
-        let query = supabase
-          .from('page_views')
-          .select('referrer_domain, page_path, time_on_page, is_bounce');
-
-        if (dateFilter) {
-          query = query.gte('created_at', dateFilter);
+        if (!analyticsDataClient) {
+          return res.status(503).json({ error: 'GA4 not configured' });
         }
 
-        if (excludedIPHashes.length > 0) {
-          excludedIPHashes.forEach(hash => {
-            query = query.neq('hashed_ip', hash);
-          });
-        }
+        const { startDate, endDate } = getGA4DateRange(period);
 
-        const { data: views } = await query;
+        // Get traffic sources with session source and medium
+        const sourcesResponse = await analyticsDataClient.runReport({
+          property: `properties/${GA4_PROPERTY_ID}`,
+          dateRanges: [{ startDate, endDate }],
+          dimensions: [
+            { name: 'sessionSource' },
+            { name: 'sessionMedium' }
+          ],
+          metrics: [
+            { name: 'sessions' },
+            { name: 'bounceRate' },
+            { name: 'averageSessionDuration' }
+          ],
+          orderBys: [{ metric: { metricName: 'sessions' }, desc: true }],
+          limit: 100,
+        });
 
         const categories = {
-          'Direct': { count: 0, bounce_count: 0, total_time: 0, time_count: 0 },
-          'Search': { count: 0, bounce_count: 0, total_time: 0, time_count: 0 },
-          'Social': { count: 0, bounce_count: 0, total_time: 0, time_count: 0 },
-          'Other': { count: 0, bounce_count: 0, total_time: 0, time_count: 0 }
+          'Direct': { count: 0, sessions: 0, bounce_rate: 0, avg_time: 0 },
+          'Search': { count: 0, sessions: 0, bounce_rate: 0, avg_time: 0 },
+          'Social': { count: 0, sessions: 0, bounce_rate: 0, avg_time: 0 },
+          'Other': { count: 0, sessions: 0, bounce_rate: 0, avg_time: 0 }
         };
 
         const referrerMap = {};
@@ -1154,112 +1140,109 @@ export default async function handler(req, res) {
           'Other': 0
         };
 
-        // Search engine domains
         const searchDomains = {
-          'google.com': 'Google',
-          'google.': 'Google', // Covers google.co.uk, etc.
-          'bing.com': 'Bing',
-          'duckduckgo.com': 'DuckDuckGo',
-          'yahoo.com': 'Yahoo',
-          'yandex.com': 'Yandex'
+          'google': 'Google',
+          'bing': 'Bing',
+          'duckduckgo': 'DuckDuckGo',
+          'yahoo': 'Yahoo',
+          'yandex': 'Yandex'
         };
 
-        // Social media domains
         const socialDomains = ['x.com', 'twitter.com', 'facebook.com', 'instagram.com', 'linkedin.com', 'reddit.com', 'tiktok.com'];
 
-        if (views) {
-          views.forEach(view => {
-            const domain = view.referrer_domain;
-            let category = 'Direct';
-            let searchEngine = null;
+        let totalSessions = 0;
 
-            if (!domain || domain === '') {
-              category = 'Direct';
+        (sourcesResponse.rows || []).forEach(row => {
+          const source = row.dimensionValues[0].value || '';
+          const medium = row.dimensionValues[1].value || '';
+          const sessions = parseInt(row.metricValues[0].value || '0');
+          const bounceRate = parseFloat(row.metricValues[1].value || '0');
+          const avgDuration = parseFloat(row.metricValues[2].value || '0');
+
+          totalSessions += sessions;
+
+          let category = 'Direct';
+          let searchEngine = null;
+
+          const sourceLower = source.toLowerCase();
+
+          // Check if it's a search engine
+          for (const [searchKey, engineName] of Object.entries(searchDomains)) {
+            if (sourceLower.includes(searchKey)) {
+              category = 'Search';
+              searchEngine = engineName;
+              break;
+            }
+          }
+
+          // Check if it's social media (especially X.com)
+          if (category === 'Direct' && (sourceLower.includes('x.com') || sourceLower.includes('twitter.com'))) {
+            category = 'Social';
+          } else if (category === 'Direct' && socialDomains.some(social => sourceLower.includes(social))) {
+            category = 'Social';
+          }
+
+          // If not search or social and has a source, it's "Other"
+          if (category === 'Direct' && source && !sourceLower.includes('watchmanscry.site') && !sourceLower.includes('localhost')) {
+            category = 'Other';
+          }
+
+          // Aggregate by category
+          categories[category].count++;
+          categories[category].sessions += sessions;
+          categories[category].bounce_rate += bounceRate * sessions;
+          categories[category].avg_time += avgDuration * sessions;
+
+          // Track individual referrers (especially X.com)
+          if (source && category !== 'Direct') {
+            if (!referrerMap[source]) {
+              referrerMap[source] = {
+                domain: source,
+                count: 0,
+                sessions: 0,
+                bounce_rate: 0,
+                avg_time: 0,
+                category: category
+              };
+            }
+            referrerMap[source].count++;
+            referrerMap[source].sessions += sessions;
+            referrerMap[source].bounce_rate += bounceRate * sessions;
+            referrerMap[source].avg_time += avgDuration * sessions;
+          }
+
+          // Track search engines
+          if (searchEngine) {
+            if (searchEngines[searchEngine] !== undefined) {
+              searchEngines[searchEngine] += sessions;
             } else {
-              const domainLower = domain.toLowerCase();
-              
-              // Check if it's a search engine
-              for (const [searchDomain, engineName] of Object.entries(searchDomains)) {
-                if (domainLower.includes(searchDomain)) {
-                  category = 'Search';
-                  searchEngine = engineName;
-                  break;
-                }
-              }
-
-              // Check if it's social media
-              if (category === 'Direct' && socialDomains.some(social => domainLower.includes(social))) {
-                category = 'Social';
-              }
-
-              // If not search or social, it's "Other" (unless it's our own domain)
-              if (category === 'Direct' && !domainLower.includes('watchmanscry.site') && !domainLower.includes('localhost')) {
-                category = 'Other';
-              }
+              searchEngines['Other'] += sessions;
             }
+          }
+        });
 
-            // Count by category
-            categories[category].count++;
-            if (view.is_bounce) {
-              categories[category].bounce_count++;
-            }
-            if (view.time_on_page) {
-              categories[category].total_time += view.time_on_page;
-              categories[category].time_count++;
-            }
-
-            // Track individual referrers
-            if (domain && category !== 'Direct') {
-              if (!referrerMap[domain]) {
-                referrerMap[domain] = {
-                  domain: domain,
-                  count: 0,
-                  bounce_count: 0,
-                  total_time: 0,
-                  time_count: 0,
-                  category: category
-                };
-              }
-              referrerMap[domain].count++;
-              if (view.is_bounce) {
-                referrerMap[domain].bounce_count++;
-              }
-              if (view.time_on_page) {
-                referrerMap[domain].total_time += view.time_on_page;
-                referrerMap[domain].time_count++;
-              }
-            }
-
-            // Track search engines
-            if (searchEngine) {
-              if (searchEngines[searchEngine]) {
-                searchEngines[searchEngine]++;
-              } else {
-                searchEngines['Other']++;
-              }
-            }
-          });
-        }
-
-        // Calculate bounce rates and avg time for categories
+        // Calculate averages for categories
         const categoryData = Object.entries(categories).map(([name, data]) => ({
           name: name,
           count: data.count,
-          percentage: views && views.length > 0 ? Math.round((data.count / views.length) * 100) : 0,
-          bounce_rate: data.count > 0 ? Math.round((data.bounce_count / data.count) * 100) : 0,
-          avg_time: data.time_count > 0 ? Math.round(data.total_time / data.time_count) : 0
+          sessions: data.sessions,
+          percentage: totalSessions > 0 ? Math.round((data.sessions / totalSessions) * 100) : 0,
+          bounce_rate: data.sessions > 0 ? Math.round((data.bounce_rate / data.sessions) * 100) : 0,
+          avg_time: data.sessions > 0 ? Math.round(data.avg_time / data.sessions) : 0
         }));
 
-        // Calculate metrics for top referrers
+        // Calculate metrics for top referrers (highlight X.com)
         const topReferrers = Object.values(referrerMap)
           .map(ref => ({
             domain: ref.domain,
             count: ref.count,
-            bounce_rate: ref.count > 0 ? Math.round((ref.bounce_count / ref.count) * 100) : 0,
-            avg_time: ref.time_count > 0 ? Math.round(ref.total_time / ref.time_count) : 0,
-            category: ref.category
+            sessions: ref.sessions,
+            bounce_rate: ref.sessions > 0 ? Math.round((ref.bounce_rate / ref.sessions) * 100) : 0,
+            avg_time: ref.sessions > 0 ? Math.round(ref.avg_time / ref.sessions) : 0,
+            category: ref.category,
+            isXcom: ref.domain.toLowerCase().includes('x.com') || ref.domain.toLowerCase().includes('twitter.com')
           }))
-          .sort((a, b) => b.count - a.count)
+          .sort((a, b) => b.sessions - a.sessions)
           .slice(0, 10);
 
         // Format search engines
@@ -1274,7 +1257,8 @@ export default async function handler(req, res) {
         result = {
           categories: categoryData,
           top_referrers: topReferrers,
-          search_engines: searchEngineData
+          search_engines: searchEngineData,
+          xcom_traffic: topReferrers.find(r => r.isXcom) || { sessions: 0, percentage: 0 }
         };
         break;
       }
@@ -1540,6 +1524,62 @@ export default async function handler(req, res) {
           entry_pages: entryPagesData,
           exit_pages: exitPagesData,
           exit_rates: exitRates.sort((a, b) => b.exit_rate - a.exit_rate)
+        };
+        break;
+      }
+
+      case 'demographics': {
+        if (!analyticsDataClient) {
+          return res.status(503).json({ error: 'GA4 not configured' });
+        }
+
+        const { startDate, endDate } = getGA4DateRange(period);
+
+        // Get age, gender, and interests
+        const [ageResponse, genderResponse, interestsResponse] = await Promise.all([
+          analyticsDataClient.runReport({
+            property: `properties/${GA4_PROPERTY_ID}`,
+            dateRanges: [{ startDate, endDate }],
+            dimensions: [{ name: 'userAgeBracket' }],
+            metrics: [{ name: 'totalUsers' }],
+            orderBys: [{ metric: { metricName: 'totalUsers' }, desc: true }],
+          }),
+          analyticsDataClient.runReport({
+            property: `properties/${GA4_PROPERTY_ID}`,
+            dateRanges: [{ startDate, endDate }],
+            dimensions: [{ name: 'userGender' }],
+            metrics: [{ name: 'totalUsers' }],
+            orderBys: [{ metric: { metricName: 'totalUsers' }, desc: true }],
+          }),
+          analyticsDataClient.runReport({
+            property: `properties/${GA4_PROPERTY_ID}`,
+            dateRanges: [{ startDate, endDate }],
+            dimensions: [{ name: 'userInterestCategory' }],
+            metrics: [{ name: 'totalUsers' }],
+            orderBys: [{ metric: { metricName: 'totalUsers' }, desc: true }],
+            limit: 10,
+          }),
+        ]);
+
+        const age = (ageResponse.rows || []).map(row => ({
+          age: row.dimensionValues[0].value || 'Unknown',
+          count: parseInt(row.metricValues[0].value || '0')
+        }));
+
+        const gender = (genderResponse.rows || []).map(row => ({
+          gender: row.dimensionValues[0].value || 'Unknown',
+          count: parseInt(row.metricValues[0].value || '0')
+        }));
+
+        const interests = (interestsResponse.rows || []).map(row => ({
+          interest: row.dimensionValues[0].value || 'Unknown',
+          count: parseInt(row.metricValues[0].value || '0')
+        }));
+
+        result = {
+          age,
+          gender,
+          interests
         };
         break;
       }

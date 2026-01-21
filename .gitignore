@@ -15,6 +15,11 @@ Thumbs.db
 # Logs
 *.log
 
+# Google Cloud Service Account Keys (NEVER commit these!)
+*-key.json
+*-credentials.json
+service-account*.json
+
 # Editor/IDE files (optional - uncomment if needed)
 # .vscode
 # .idea

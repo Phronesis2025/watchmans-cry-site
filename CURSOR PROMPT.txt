@@ -1,0 +1,26 @@
+You are helping maintain The Watchman's Cry website (static HTML on Vercel).
+
+Current date is January 15, 2026. We are preparing to publish the new edition for Thursday, January 16, 2026.
+
+Follow these exact steps in order. Do not skip or combine steps. Confirm each action before moving to the next.
+
+1. In the project root, locate the current live index.html file.
+
+2. Create a new folder in the project root called "archive" if it does not already exist.
+
+3. Inside the "archive" folder, create a new subfolder named with today's date in YYYY-MM-DD format, i.e., "2026-01-15".
+
+4. Copy the current live index.html file into the archive/2026-01-15/ folder and rename it to index-2026-01-15.html (so we preserve the previous edition exactly).
+
+5. Make a temporary backup of the current live index.html in the project root:
+   - Copy index.html to a file named index-backup-before-2026-01-16.html in the root.
+
+6. Now, replace the entire content of the live index.html file with the new code I have in my clipboard (the complete, updated index.html for the January 16, 2026 edition that was just generated).
+
+7. After replacement, do NOT make any other changes to the file — preserve all links, images, classes, dividers, footer, and structure exactly as provided in the new code.
+
+8. Save the file.
+
+9. After completing all steps, reply with a short confirmation list of what you did (e.g., "Archived old edition → Created backup → Replaced live index.html with new edition").
+
+Do not ask for confirmation before proceeding — execute the steps sequentially and safely.

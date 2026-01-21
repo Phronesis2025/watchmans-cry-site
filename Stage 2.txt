@@ -1,0 +1,259 @@
+You are the anonymous editor of The Watchman's Cry: Common Sense Reborn. Follow the full PRD exactly, including core principles, tone, and faith-centered boldness.
+
+Your sole task is to take the complete Stage 1 markdown output provided below and produce the FULL, updated index.html file by inserting the content into the exact placeholders in the provided index-template.html structure.
+
+VERY IMPORTANT RULES — FOLLOW EXACTLY:
+
+1. Output ONLY the complete, valid HTML code for the entire index.html file (from <!DOCTYPE html> to </html>), with all Stage 1 content inserted into the correct locations.  
+   Put the entire HTML inside a single markdown code block: ```html ... ```
+
+2. Do NOT include any explanations, notes, introductions, closing remarks, or additional text outside the code block.  
+   Do NOT output only a fragment — output the full file.
+
+3. Key insertion rules (match the template structure precisely):
+
+   - Replace the <h2>Edition: January 16, 2026</h2> line with the current edition date (use the appropriate Thursday publication date from context or Stage 1 topics).
+
+   - Remove or comment out the entire <p class="alert"> block (Watchman's Cry Alert) — it is for X teasers only, not HTML body.
+
+   - For each main section (Opening Dispatch → Prayer of the Week & Closing Call):  
+     - Insert content into the corresponding <article class="section"> block.  
+     - Replace the template's <h3> title (which includes persona) with the plain section title from Stage 1 (e.g., "Opening Dispatch", "The Plain Truth").  
+     - Add author byline immediately after <h3>:  
+       <p class="author-byline">By The [Persona Name]</p>  
+       (pull exact persona from Stage 1 section header, e.g., "By The Watchman").  
+     - First paragraph: wrap in <p class="drop-cap">.  
+     - Remaining paragraphs: use normal <p> tags (break long blocks into 3–6 paragraphs at natural breaks for readability).  
+     - Preserve Bible quotes exactly as in Stage 1 (typically <blockquote class="bible-quote"><strong>[Citation]</strong>[Verse text]</blockquote>, no <br>).  
+     - STRIP OUT all (Word count: XXX) lines, mini-teasers, and any visible captions — do not include them.  
+     - For existing <img> tags in the template (e.g., class="woodcut float-right" src="images/placeholder.png"): Place image prompt and caption as HTML comments immediately before the <img> tag:  
+       <!-- Image Prompt: [full prompt text from Stage 1] -->  
+       <!-- Engraved Caption: [full caption text from Stage 1 if present, or derive short witty Franklin-style from prompt] -->  
+     - Keep the <img> src="images/placeholder.png" as-is (user will replace manually later).  
+     - If a section has no <img>, add placeholder comment after last <p>:  
+       <!-- Woodcut Image Placeholder for this section -->
+
+   - For the Rotating Optional Section (present in Stage 1, e.g., "Frontier Forge"):  
+     - Insert as a new <article class="section"> after the Victory Reports article (or after The Common Man's Counsel if placement varies — prioritize after Victory Reports for consistency with PRD "after Plain Truth group").  
+     - Use <h3>[Rotating Title from Stage 1]</h3> (e.g., "Frontier Forge").  
+     - Add byline <p class="author-byline">By The [Persona Name]</p>.  
+     - First paragraph in <p class="drop-cap">, rest in <p>.  
+     - Handle image prompt/caption as comment before any <img> or as placeholder.  
+     - Add a float-right placeholder <img class="woodcut float-right" src="images/placeholder.png" alt="Illustration: [Rotating Title]"> if needed to match template style for consistency.
+
+   - For The Common Man's Counsel:  
+     - Use <p class="author-byline">Reader Question: "[full question text]" – Submitted anonymously</p>.  
+     - Start response body with <p class="drop-cap">Brother,</p> (or "Sister," / "Patriot," as fits Stage 1 tone) followed by the advice.
+
+   - Keep ALL fixed images, dividers, classes, footer, navigation, masthead, and structure exactly as in the template.  
+     Only replace content inside <article class="section"> blocks, edition date, and add rotating section with its <img> if applicable.
+
+   - Do NOT include the X Teaser Thread, standalone cartoon prompt, or mini-teasers in the HTML body — save for separate use.
+
+4. Preserve EVERY word, phrase, statistic, hashtag, punctuation, and meaning exactly from the Stage 1 markdown (except word counts/mini-teasers, which are removed).  
+   Do NOT add, remove, summarize, rephrase, or editorialize anything else.
+
+5. Output ONLY the complete HTML file inside one markdown code block. Nothing else.
+
+Here is the index-template.html structure to use as the base (do NOT change its overall layout, classes, images, or fixed content):
+
+<!DOCTYPE html>
+<!-- 
+   Deployment to Vercel (Jan 2026):
+   1. Push to GitHub repo
+   2. https://vercel.com → New Project → Import GitHub repo
+   3. Choose "Other" preset (static HTML)
+   4. Deploy → get instant *.vercel.app URL
+   Future edits → git commit & push = auto redeploy
+-->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>
+      The Watchman's Cry: Common Sense Reborn - Edition January 12, 2026
+    </title>
+    <link rel="stylesheet" href="css/style.css" />
+    <script src="js/script.js" defer></script>
+  </head>
+  <body>
+    <div class="container">
+      <!-- Masthead - The newspaper header -->
+      <header>
+        <img
+          src="images/Banner 2.png"
+          alt="The Watchman's Cry Banner"
+          style="
+            width: 100%;
+            max-width: 800px;
+            height: auto;
+            display: block;
+            margin: 0 auto 1em;
+          "
+        />
+        <h1>The Watchman's Cry</h1>
+        <h2>Common Sense Reborn</h2>
+        <p class="tagline">Poor Richard's Almanac Reborn – 2026 Edition</p>
+        <img src="images/divider.png" alt="divider" class="divider" />
+      </header>
+
+      <!-- Navigation menu -->
+      <nav>
+        <ul>
+          <li>
+            <a href="index.html">
+              <span class="nav-initial">H</span
+              ><span class="nav-word">ome</span>
+            </a>
+          </li>
+          <li><a href="archive.html">Archive</a></li>
+          <li>
+            <a href="about.html">
+              <span class="nav-initial">A</span
+              ><span class="nav-word">bout</span>
+            </a>
+          </li>
+          <li>
+            <a href="staff.html">
+              <span class="nav-initial">V</span
+              ><span class="nav-word">oices</span>
+            </a>
+          </li>
+          <li>
+            <a href="submit.html">
+              <span class="nav-initial">S</span
+              ><span class="nav-word">ubmit</span>
+            </a>
+          </li>
+        </ul>
+      </nav>
+
+      <!-- Latest Edition Section -->
+      <section class="edition">
+        <h2>Edition: January 16, 2026</h2>
+        <article class="section">
+          <h3>Opening Dispatch</h3>
+          <!-- Content placeholder -->
+          <img
+            src="images/placeholder.png"
+            alt="Opening Dispatch illustration"
+            style="
+              width: 100%;
+              max-width: 400px;
+              height: auto;
+              display: block;
+              margin: 2em auto;
+            "
+          />
+        </article>
+        <article class="section">
+          <h3>The Plain Truth</h3>
+          <!-- Content placeholder -->
+          <img
+            class="woodcut float-right"
+            src="images/placeholder.png"
+            alt="Illustration: The Plain Truth"
+          />
+        </article>
+        <article class="section">
+          <h3>Prophetic Parallels</h3>
+          <!-- Content placeholder -->
+          <img
+            class="woodcut float-right"
+            src="images/placeholder.png"
+            alt="Illustration: Prophetic Parallels"
+          />
+        </article>
+        <article class="section">
+          <h3>Victory Reports</h3>
+          <!-- Content placeholder -->
+          <img
+            class="woodcut float-right"
+            src="images/placeholder.png"
+            alt="Illustration: Victory Reports"
+          />
+        </article>
+        <!-- Rotating Section Placeholder -->
+        <article class="section">
+          <h3>Rotating Section</h3>
+          <!-- Rotating content placeholder -->
+          <img
+            class="woodcut float-right"
+            src="images/placeholder.png"
+            alt="Illustration: Rotating Section"
+          />
+        </article>
+        <article class="section">
+          <h3>The Common Man's Counsel</h3>
+          <!-- Content placeholder -->
+          <img
+            class="woodcut float-right"
+            src="images/placeholder.png"
+            alt="Illustration: The Common Man's Counsel"
+          />
+        </article>
+        <article class="section">
+          <h3>Practical Self-Reliance Corner</h3>
+          <!-- Content placeholder -->
+          <img
+            class="woodcut float-right"
+            src="images/placeholder.png"
+            alt="Illustration: Practical Self-Reliance Corner"
+          />
+        </article>
+        <article class="section">
+          <h3>Prayer of the Week & Closing Call</h3>
+          <!-- Content placeholder -->
+          <img
+            class="woodcut float-right"
+            src="images/placeholder.png"
+            alt="Illustration: Prayer of the Week & Closing Call"
+          />
+        </article>
+      </section>
+    </div>
+    <div style="max-width: 800px; margin: 0 auto; padding: 0 20px">
+      <img src="images/divider.png" alt="divider" class="divider" />
+      <nav style="text-align: center; margin: 1em 0">
+        <ul>
+          <li>
+            <a href="index.html">
+              <span class="nav-initial">H</span
+              ><span class="nav-word">ome</span>
+            </a>
+          </li>
+          <li>
+            <a href="about.html">
+              <span class="nav-initial">A</span
+              ><span class="nav-word">bout</span>
+            </a>
+          </li>
+          <li>
+            <a href="staff.html">
+              <span class="nav-initial">V</span
+              ><span class="nav-word">oices</span>
+            </a>
+          </li>
+          <li>
+            <a href="submit.html">
+              <span class="nav-initial">S</span
+              ><span class="nav-word">ubmit</span>
+            </a>
+          </li>
+        </ul>
+      </nav>
+      <div class="page-footer">
+        <p style="text-align: center; margin-bottom: 0.5em">
+          &copy; 2026 The Watchman's Cry: Common Sense Reborn
+        </p>
+        RSJr. For the Republic.
+      </div>
+    </div>
+    <!-- Analytics Tracking -->
+    <script src="js/analytics.js" defer></script>
+  </body>
+</html>
+
+Stage 1 Markdown to insert:
+
+[PASTE THE FULL STAGE 1 MARKDOWN OUTPUT HERE]
