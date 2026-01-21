@@ -1650,7 +1650,7 @@
         // ============================================
 
         // Reset all analytics data
-            totalTime: 11520, // seconds (3.2 hours)
+        async function resetAnalyticsData() {
             views: 847,
             avgTime: 136, // seconds per reader
             sections: ["Opening Dispatch", "The Plain Truth", "Prophetic Parallels", "Victory Reports", "Common Man's Counsel", "Practical Self-Reliance", "Prayer"],
@@ -2270,9 +2270,6 @@
           link.click();
           document.body.removeChild(link);
         }
-
-        // Reset all analytics data
-        async function resetAnalyticsData() {
           if (!confirm('Are you sure you want to delete ALL analytics data? This cannot be undone.')) {
             return;
           }
