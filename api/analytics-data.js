@@ -189,13 +189,23 @@ export default async function handler(req, res) {
 
         const { data: dailyViews } = await dailyQuery;
 
-        // Group by day
+        // Helper function to convert UTC to Central Time
+        function toCST(date) {
+          return new Date(date.toLocaleString('en-US', { timeZone: 'America/Chicago' }));
+        }
+
+        // Group by day (in Central Time)
         const dailyCounts = {};
         if (dailyViews) {
           dailyViews.forEach(view => {
             if (view.created_at) {
-              const date = new Date(view.created_at);
-              const dayKey = date.toISOString().split('T')[0]; // YYYY-MM-DD
+              const utcDate = new Date(view.created_at);
+              const cstDate = toCST(utcDate);
+              // Format as YYYY-MM-DD in Central Time
+              const year = cstDate.getFullYear();
+              const month = String(cstDate.getMonth() + 1).padStart(2, '0');
+              const day = String(cstDate.getDate()).padStart(2, '0');
+              const dayKey = `${year}-${month}-${day}`;
               dailyCounts[dayKey] = (dailyCounts[dayKey] || 0) + 1;
             }
           });

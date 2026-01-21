@@ -51,13 +51,58 @@
     sendTrackingData(data);
   }
 
-  // Track time on page
+  // Track time on page (only when tab is visible)
   let pageStartTime = Date.now();
+  let visibleStartTime = Date.now(); // Time when tab became visible
+  let totalVisibleTime = 0; // Accumulated visible time
+  let isTabVisible = !document.hidden; // Track visibility state
+  
+  // If page loads while tab is hidden, don't start counting until it becomes visible
+  if (document.hidden) {
+    visibleStartTime = null; // Will be set when tab becomes visible
+  }
+  
   let timeOnPageInterval = null;
   let lastSentTime = 0;
 
+  // Handle tab visibility changes
+  function handleVisibilityChange() {
+    const now = Date.now();
+    
+    if (document.hidden) {
+      // Tab became hidden - accumulate visible time up to now
+      if (isTabVisible && visibleStartTime !== null) {
+        totalVisibleTime += Math.floor((now - visibleStartTime) / 1000);
+        isTabVisible = false;
+      }
+    } else {
+      // Tab became visible - start counting from now
+      visibleStartTime = now;
+      isTabVisible = true;
+    }
+  }
+
+  // Listen for visibility changes
+  document.addEventListener('visibilitychange', handleVisibilityChange);
+
+  function getCurrentVisibleTime() {
+    let currentVisible = totalVisibleTime;
+    
+    // If tab is currently visible, add time since it became visible
+    if (!document.hidden) {
+      currentVisible += Math.floor((Date.now() - visibleStartTime) / 1000);
+    }
+    
+    return currentVisible;
+  }
+
   function updateTimeOnPage() {
-    const timeSpent = Math.floor((Date.now() - pageStartTime) / 1000);
+    // Only update if tab is visible
+    if (document.hidden) {
+      return;
+    }
+    
+    const timeSpent = getCurrentVisibleTime();
     
     // Send periodic updates every 30 seconds
     if (timeSpent - lastSentTime >= 30) {
@@ -78,14 +123,22 @@
 
   // Send final time on page when leaving
   function sendFinalTimeOnPage() {
-    const timeSpent = Math.floor((Date.now() - pageStartTime) / 1000);
+    // Calculate final visible time
+    const now = Date.now();
+    let finalTime = totalVisibleTime;
+    
+    // If tab is still visible and we have a start time, add time since it became visible
+    if (!document.hidden && visibleStartTime !== null) {
+      finalTime += Math.floor((now - visibleStartTime) / 1000);
+    }
+    
     const sessionId = getSessionId();
     const pagePath = window.location.pathname || '/';
     
     const data = {
       page_path: pagePath,
       session_id: sessionId,
-      time_on_page: timeSpent,
+      time_on_page: finalTime,
       is_update: true,
       is_final: true
     };

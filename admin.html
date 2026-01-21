@@ -9,6 +9,8 @@
     <script src="js/supabase-client.js"></script>
     <!-- Chart.js for bar charts -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <!-- Chart.js Data Labels Plugin -->
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
   </head>
   <body>
     <div class="container">
@@ -307,7 +309,7 @@
             const period = periodSelect ? periodSelect.value : '7d';
             const token = session.access_token;
 
-            const [pageviewsRes, visitorsRes, devicesRes, geographyRes, timeonpageRes, hourlyRes, timelineRes, growthRes, engagementRes, sourcesRes, contentRes, journeyRes] = await Promise.all([
+            const [pageviewsRes, visitorsRes, devicesRes, timeonpageRes, hourlyRes, timelineRes, growthRes, engagementRes, sourcesRes, contentRes, journeyRes] = await Promise.all([
               fetch(`/api/analytics-data?metric=pageviews&period=${period}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
               }).then(r => r.ok ? r.json() : null).catch(() => null),
@@ -315,9 +317,6 @@
                 headers: { 'Authorization': `Bearer ${token}` }
               }).then(r => r.ok ? r.json() : null).catch(() => null),
               fetch(`/api/analytics-data?metric=devices&period=${period}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-              }).then(r => r.ok ? r.json() : null).catch(() => null),
-              fetch(`/api/analytics-data?metric=geography&period=${period}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
               }).then(r => r.ok ? r.json() : null).catch(() => null),
               fetch(`/api/analytics-data?metric=timeonpage&period=${period}`, {
@@ -374,6 +373,7 @@
                     </p>
                     <p style="font-size: 0.75em; color: #666; margin-top: 0.25em;">Trend: ${growthRes.pageviews.trend === 'up' ? 'Growing' : growthRes.pageviews.trend === 'down' ? 'Declining' : 'Stable'}</p>
                   ` : ''}
+                  <p style="font-size: 0.7em; color: #666; margin-top: 0.5em; font-style: italic;">Total number of pages viewed. Shows overall site traffic and content consumption.</p>
                 </div>
                 
                 <!-- Unique Visitors Card with Return Rate -->
@@ -389,6 +389,7 @@
                   ${engagementRes?.return_rate !== undefined ? `
                     <p style="font-size: 0.75em; color: #666; margin-top: 0.25em;">${engagementRes.return_rate}% returning</p>
                   ` : ''}
+                  <p style="font-size: 0.7em; color: #666; margin-top: 0.5em; font-style: italic;">Distinct individuals visiting your site. Higher numbers indicate growing audience reach.</p>
                 </div>
                 
                 <!-- Engagement Card (New) -->
@@ -402,6 +403,7 @@
                       ${engagementRes.pages_per_session?.average || 0} pages/session
                     </p>
                   ` : '<p style="font-size: 1.5em; font-weight: 700; margin: 0;">-</p>'}
+                  <p style="font-size: 0.7em; color: #666; margin-top: 0.5em; font-style: italic;">Bounce rate shows single-page visits. Lower is better—indicates visitors explore multiple pages.</p>
                 </div>
                 
                 <!-- Time on Page Card Enhanced -->
@@ -426,6 +428,7 @@
                          engagementRes.time_distribution['5min+']) * 100) || 0)}% read 2+ min
                     </p>
                   ` : ''}
+                  <p style="font-size: 0.7em; color: #666; margin-top: 0.5em; font-style: italic;">Average time visitors spend reading (only counts when tab is visible). Higher indicates deeper engagement.</p>
                 </div>
               </div>
 
@@ -437,17 +440,18 @@
               </div>
               ` : ''}
 
-              <!-- Visitor Timeline Chart (Month -> Day -> Hour) -->
+              <!-- Visitor Activity Timeline Chart (Vertical Bar with Button Selector) -->
               ${timelineRes?.months?.length > 0 ? `
               <div style="margin-bottom: 2em; padding: 1em; background-color: rgba(244, 232, 212, 0.3); border: 1px solid #000;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1em;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1em; flex-wrap: wrap; gap: 0.5em;">
                   <h4 style="margin: 0;">Visitor Activity Timeline</h4>
-                  <div id="timeline-breadcrumb" style="font-size: 0.9em; color: #666;">
-                    <span id="timeline-level-indicator">Viewing: Months</span>
-                    <button id="timeline-back-btn" onclick="goBackTimeline()" style="margin-left: 0.5em; padding: 0.25em 0.5em; background-color: #000; color: #f4e8d4; border: none; font-family: 'EB Garamond', serif; cursor: pointer; font-size: 0.85em; display: none;">← Back</button>
+                  <div style="display: flex; gap: 0.5em;">
+                    <button id="timeline-btn-months" onclick="switchTimelineView('months')" style="padding: 0.5em 1em; background-color: #000; color: #f4e8d4; border: none; font-family: 'EB Garamond', serif; cursor: pointer; font-size: 0.9em;">Months</button>
+                    <button id="timeline-btn-days" onclick="switchTimelineView('days')" style="padding: 0.5em 1em; background-color: #8b4513; color: #f4e8d4; border: none; font-family: 'EB Garamond', serif; cursor: pointer; font-size: 0.9em;">Days</button>
+                    <button id="timeline-btn-hours" onclick="switchTimelineView('hours')" style="padding: 0.5em 1em; background-color: #8b4513; color: #f4e8d4; border: none; font-family: 'EB Garamond', serif; cursor: pointer; font-size: 0.9em;">Hours</button>
                   </div>
                 </div>
-                <canvas id="timelineChart" style="max-height: 400px;"></canvas>
+                <canvas id="timelineChart" style="max-height: 500px;"></canvas>
                 ${timelineRes?.peak_day || timelineRes?.peak_hour ? `
                 <div style="margin-top: 1em; font-size: 0.9em; color: #666;">
                   ${timelineRes.peak_day ? `<p style="margin: 0.25em 0;"><strong>Peak Day:</strong> ${timelineRes.peak_day.day} (${timelineRes.peak_day.count} visits)</p>` : ''}
@@ -516,6 +520,28 @@
                       </tbody>
                     </table>
                   </div>
+                </div>
+              </div>
+              ` : ''}
+
+              <!-- Page Sections Heatmap -->
+              ${contentRes?.top_pages?.length > 0 ? `
+              <div style="margin-bottom: 2em; padding: 1em; background-color: rgba(244, 232, 212, 0.3); border: 1px solid #000;">
+                <h4 style="margin-top: 0; margin-bottom: 1em;">Page Sections Heatmap (Most Viewed Content)</h4>
+                <p style="font-size: 0.9em; color: #666; margin-bottom: 1em;">Visual representation of which pages and sections users view most. Darker colors indicate higher view counts.</p>
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1em;">
+                  ${contentRes.top_pages.slice(0, 15).map(page => {
+                    const maxViews = Math.max(...contentRes.top_pages.map(p => p.views));
+                    const intensity = Math.round((page.views / maxViews) * 100);
+                    const bgColor = `rgba(0, 0, 0, ${0.3 + (intensity / 100) * 0.7})`;
+                    return `
+                      <div style="padding: 1em; background-color: ${bgColor}; color: #f4e8d4; border: 1px solid #000; text-align: center;">
+                        <p style="font-weight: 700; margin-bottom: 0.5em; font-size: 0.9em;">${escapeHtml(getPageName(page.path))}</p>
+                        <p style="font-size: 1.5em; font-weight: 700; margin: 0;">${page.views}</p>
+                        <p style="font-size: 0.75em; margin-top: 0.25em; opacity: 0.9;">views</p>
+                      </div>
+                    `;
+                  }).join('')}
                 </div>
               </div>
               ` : ''}
@@ -644,35 +670,13 @@
               ` : ''}
 
               <!-- Device Types and Top Countries side by side (3 & 4) -->
-              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1em; margin-bottom: 2em;">
-                ${devicesRes?.devices?.length > 0 ? `
-                <div style="padding: 1em; background-color: rgba(244, 232, 212, 0.3); border: 1px solid #000;">
-                  <h4 style="margin-top: 0; margin-bottom: 1em;">Device Types</h4>
-                  <canvas id="deviceTypesChart" style="max-height: 300px;"></canvas>
-                </div>
-                ` : '<div></div>'}
-                ${geographyRes?.countries?.length > 0 ? `
-                <div style="padding: 1em; background-color: rgba(244, 232, 212, 0.3); border: 1px solid #000;">
-                  <h4 style="margin-top: 0; margin-bottom: 1em;">Top Countries</h4>
-                  <table style="width: 100%; border-collapse: collapse;">
-                    <thead>
-                      <tr style="border-bottom: 2px solid #000;">
-                        <th style="padding: 0.5em; text-align: left; font-weight: 700;">Country</th>
-                        <th style="padding: 0.5em; text-align: right; font-weight: 700;">Views</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      ${geographyRes.countries.map(country => `
-                        <tr style="border-bottom: 1px solid #ccc;">
-                          <td style="padding: 0.5em;">${escapeHtml(country.country)}</td>
-                          <td style="padding: 0.5em; text-align: right;">${country.count}</td>
-                        </tr>
-                      `).join('')}
-                    </tbody>
-                  </table>
-                </div>
-                ` : '<div></div>'}
+              <!-- Device Types -->
+              ${devicesRes?.devices?.length > 0 ? `
+              <div style="margin-bottom: 2em; padding: 1em; background-color: rgba(244, 232, 212, 0.3); border: 1px solid #000;">
+                <h4 style="margin-top: 0; margin-bottom: 1em;">Device Types</h4>
+                <canvas id="deviceTypesChart" style="max-height: 300px;"></canvas>
               </div>
+              ` : ''}
 
               ${!pageviewsRes && !visitorsRes ? `
               <div style="padding: 1em; background-color: rgba(244, 232, 212, 0.3); border: 1px solid #000;">
@@ -712,7 +716,8 @@
               renderTrafficTrendChart(pageviewsRes.daily);
             }
             if (timelineRes?.months?.length > 0) {
-              renderTimelineChart(timelineRes, 'months');
+              // Initialize timeline with months view
+              switchTimelineView('months');
             }
             if (timelineRes?.day_of_week?.length > 0) {
               renderDayOfWeekChart(timelineRes.day_of_week);
@@ -786,16 +791,19 @@
                   display: false
                 },
                 tooltip: {
-                  backgroundColor: 'rgba(244, 232, 212, 0.95)',
-                  titleColor: '#000',
-                  bodyColor: '#000',
-                  borderColor: '#000',
-                  borderWidth: 1,
-                  padding: 12,
-                  callbacks: {
-                    label: function(context) {
-                      return 'Views: ' + context.parsed.x;
-                    }
+                  enabled: false
+                },
+                datalabels: {
+                  anchor: 'end',
+                  align: 'right',
+                  color: '#000',
+                  font: {
+                    family: "'EB Garamond', serif",
+                    size: 11,
+                    weight: 'bold'
+                  },
+                  formatter: function(value) {
+                    return value > 0 ? value : '';
                   }
                 }
               },
@@ -883,19 +891,19 @@
                   display: false
                 },
                 tooltip: {
-                  backgroundColor: 'rgba(244, 232, 212, 0.95)',
-                  titleColor: '#000',
-                  bodyColor: '#000',
-                  borderColor: '#000',
-                  borderWidth: 1,
-                  padding: 12,
-                  callbacks: {
-                    label: function(context) {
-                      return 'Avg. Time: ' + context.parsed.x + 's';
-                    },
-                    afterTitle: function(context) {
-                      return 'Click to filter hourly chart';
-                    }
+                  enabled: false
+                },
+                datalabels: {
+                  anchor: 'end',
+                  align: 'right',
+                  color: '#000',
+                  font: {
+                    family: "'EB Garamond', serif",
+                    size: 10,
+                    weight: 'bold'
+                  },
+                  formatter: function(value) {
+                    return value > 0 ? value + 's' : '';
                   }
                 }
               },
@@ -1089,7 +1097,107 @@
         }
 
         // Render Timeline Chart (Month -> Day -> Hour drill-down)
-        function renderTimelineChart(data, level, selectedMonth = null, selectedDay = null) {
+        // Switch timeline view (months/days/hours)
+        async function switchTimelineView(viewType) {
+          const analyticsData = window.currentAnalyticsData;
+          if (!analyticsData || !analyticsData.token) {
+            console.error('Analytics data not available');
+            return;
+          }
+
+          // Update button styles
+          document.getElementById('timeline-btn-months').style.backgroundColor = viewType === 'months' ? '#000' : '#8b4513';
+          document.getElementById('timeline-btn-days').style.backgroundColor = viewType === 'days' ? '#000' : '#8b4513';
+          document.getElementById('timeline-btn-hours').style.backgroundColor = viewType === 'hours' ? '#000' : '#8b4513';
+
+          try {
+            const period = analyticsData.period || '7d';
+            let url = `/api/analytics-data?metric=timeline&period=${period}`;
+            
+            // For days and hours, we need to fetch aggregated data
+            // The API will return all days/hours when no month/day filter is provided
+            
+            const response = await fetch(url, {
+              headers: { 'Authorization': `Bearer ${analyticsData.token}` }
+            });
+
+            if (response.ok) {
+              const data = await response.json();
+              
+              // For days view, aggregate all days from all months
+              if (viewType === 'days' && data.months && data.months.length > 0) {
+                // Fetch days for each month and aggregate
+                const allDays = {};
+                for (const month of data.months) {
+                  const dayResponse = await fetch(`${url}&month=${month.month}`, {
+                    headers: { 'Authorization': `Bearer ${analyticsData.token}` }
+                  });
+                  if (dayResponse.ok) {
+                    const dayData = await dayResponse.json();
+                    if (dayData.days) {
+                      dayData.days.forEach(d => {
+                        allDays[d.day] = (allDays[d.day] || 0) + d.count;
+                      });
+                    }
+                  }
+                }
+                // Convert to array format
+                const sortedDays = Object.entries(allDays)
+                  .map(([day, count]) => ({
+                    day: day,
+                    count: count,
+                    label: new Date(day).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                  }))
+                  .sort((a, b) => a.day.localeCompare(b.day));
+                data.days = sortedDays;
+              }
+              
+              // For hours view, aggregate all hours from all days
+              if (viewType === 'hours' && data.months && data.months.length > 0) {
+                const allHours = {};
+                for (let i = 0; i < 24; i++) {
+                  allHours[i] = 0;
+                }
+                // Fetch hours for each month's days
+                for (const month of data.months) {
+                  const dayResponse = await fetch(`${url}&month=${month.month}`, {
+                    headers: { 'Authorization': `Bearer ${analyticsData.token}` }
+                  });
+                  if (dayResponse.ok) {
+                    const dayData = await dayResponse.json();
+                    if (dayData.days) {
+                      for (const day of dayData.days) {
+                        const hourResponse = await fetch(`${url}&month=${month.month}&day=${day.day}`, {
+                          headers: { 'Authorization': `Bearer ${analyticsData.token}` }
+                        });
+                        if (hourResponse.ok) {
+                          const hourData = await hourResponse.json();
+                          if (hourData.hours) {
+                            hourData.hours.forEach(h => {
+                              allHours[h.hour] = (allHours[h.hour] || 0) + h.count;
+                            });
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+                data.hours = Object.entries(allHours).map(([hour, count]) => ({
+                  hour: parseInt(hour),
+                  count: count
+                }));
+              }
+              
+              renderTimelineChart(data, viewType);
+            } else {
+              console.error('Failed to fetch timeline data');
+            }
+          } catch (error) {
+            console.error('Error switching timeline view:', error);
+          }
+        }
+
+        function renderTimelineChart(data, level) {
           // Destroy existing chart if it exists
           if (window.timelineChartInstance) {
             window.timelineChartInstance.destroy();
@@ -1100,18 +1208,7 @@
 
           let labels = [];
           let values = [];
-          let chartType = 'bar';
-          let indexAxis = 'y';
 
-          // Update timeline state
-          window.timelineState.level = level;
-          window.timelineState.selectedMonth = selectedMonth;
-          window.timelineState.selectedDay = selectedDay;
-
-          // Update breadcrumb
-          const indicator = document.getElementById('timeline-level-indicator');
-          const backBtn = document.getElementById('timeline-back-btn');
-          
           if (level === 'months') {
             if (!data.months || data.months.length === 0) {
               labels = ['No data'];
@@ -1120,101 +1217,67 @@
               labels = data.months.map(m => m.label);
               values = data.months.map(m => m.count);
             }
-            if (indicator) indicator.textContent = 'Viewing: Months';
-            if (backBtn) backBtn.style.display = 'none';
           } else if (level === 'days') {
             if (!data.days || data.days.length === 0) {
-              labels = ['No data for this month'];
+              labels = ['No data'];
               values = [0];
             } else {
-              labels = data.days.map(d => d.label);
+              labels = data.days.map(d => d.label || new Date(d.day).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
               values = data.days.map(d => d.count);
             }
-            const monthLabel = selectedMonth ? new Date(selectedMonth + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'selected month';
-            if (indicator) indicator.textContent = `Viewing: Days in ${monthLabel}`;
-            if (backBtn) backBtn.style.display = 'inline-block';
           } else if (level === 'hours') {
-            // Always show all 24 hours, even if count is 0
-            labels = [];
-            values = [];
+            // Aggregate all hours across all days
+            const hourCounts = {};
+            for (let i = 0; i < 24; i++) {
+              hourCounts[i] = 0;
+            }
+            if (data.hours && data.hours.length > 0) {
+              data.hours.forEach(h => {
+                hourCounts[h.hour] = (hourCounts[h.hour] || 0) + h.count;
+              });
+            }
             for (let i = 0; i < 24; i++) {
               const period = i >= 12 ? 'PM' : 'AM';
               const displayHour = i === 0 ? 12 : i > 12 ? i - 12 : i;
               labels.push(`${displayHour} ${period}`);
-              const hourData = data.hours?.find(h => h.hour === i);
-              values.push(hourData ? hourData.count : 0);
+              values.push(hourCounts[i] || 0);
             }
-            chartType = 'line';
-            indexAxis = 'x';
-            const dayLabel = selectedDay ? new Date(selectedDay).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'selected day';
-            if (indicator) indicator.textContent = `Viewing: Hours on ${dayLabel}`;
-            if (backBtn) backBtn.style.display = 'inline-block';
           }
 
           const chartConfig = {
-            type: chartType,
+            type: 'bar',
             data: {
               labels: labels,
               datasets: [{
                 label: 'Visits',
                 data: values,
-                backgroundColor: level === 'hours' ? 'rgba(0, 0, 0, 0.1)' : 'rgba(0, 0, 0, 0.7)',
+                backgroundColor: 'rgba(0, 0, 0, 0.7)',
                 borderColor: '#000',
-                borderWidth: level === 'hours' ? 2 : 1,
-                fill: level === 'hours',
-                tension: level === 'hours' ? 0.4 : 0,
-                pointBackgroundColor: level === 'hours' ? '#000' : undefined,
-                pointBorderColor: level === 'hours' ? '#f4e8d4' : undefined,
-                pointBorderWidth: level === 'hours' ? 2 : undefined,
-                pointRadius: level === 'hours' ? 4 : undefined,
-                pointHoverRadius: level === 'hours' ? 6 : undefined
+                borderWidth: 1
               }]
             },
             options: {
-              indexAxis: indexAxis,
+              indexAxis: 'x', // Vertical bars
               responsive: true,
               maintainAspectRatio: true,
-              onClick: async function(event, elements) {
-                if (elements.length > 0) {
-                  const clickedIndex = elements[0].index;
-                  const analyticsData = window.currentAnalyticsData;
-                  
-                  if (level === 'months') {
-                    // Drill down to days
-                    const selectedMonth = data.months[clickedIndex].month;
-                    await drillDownToDays(selectedMonth);
-                  } else if (level === 'days') {
-                    // Drill down to hours
-                    const selectedDay = data.days[clickedIndex].day;
-                    await drillDownToHours(selectedDay);
-                  }
-                }
-              },
-              onHover: function(event, elements) {
-                event.native.target.style.cursor = (level !== 'hours' && elements.length > 0) ? 'pointer' : 'default';
-              },
               plugins: {
                 legend: {
                   display: false
                 },
                 tooltip: {
-                  backgroundColor: 'rgba(244, 232, 212, 0.95)',
-                  titleColor: '#000',
-                  bodyColor: '#000',
-                  borderColor: '#000',
-                  borderWidth: 1,
-                  padding: 12,
-                  callbacks: {
-                    label: function(context) {
-                      const value = indexAxis === 'y' ? context.parsed.x : context.parsed.y;
-                      return 'Visits: ' + value;
-                    },
-                    afterTitle: function(context) {
-                      if (level !== 'hours') {
-                        return 'Click to drill down';
-                      }
-                      return '';
-                    }
+                  enabled: false // Disable hover tooltips
+                },
+                datalabels: {
+                  anchor: 'end',
+                  align: 'top',
+                  color: '#000',
+                  font: {
+                    family: "'EB Garamond', serif",
+                    size: 11,
+                    weight: 'bold'
+                  },
+                  formatter: function(value) {
+                    return value > 0 ? value : '';
                   }
                 }
               },
@@ -1225,13 +1288,13 @@
                     color: '#000',
                     font: {
                       family: "'EB Garamond', serif",
-                      size: indexAxis === 'x' ? 11 : 12
+                      size: 11
                     },
-                    maxRotation: indexAxis === 'x' ? 45 : 0,
-                    minRotation: indexAxis === 'x' ? 45 : 0
+                    maxRotation: level === 'hours' ? 0 : 45,
+                    minRotation: level === 'hours' ? 0 : 45
                   },
                   grid: {
-                    color: 'rgba(0, 0, 0, 0.1)'
+                    display: false
                   }
                 },
                 y: {
@@ -1242,107 +1305,21 @@
                       family: "'EB Garamond', serif",
                       size: 12
                     },
-                    stepSize: level === 'hours' ? undefined : 1
+                    stepSize: 1
                   },
                   grid: {
-                    color: indexAxis === 'x' ? 'rgba(0, 0, 0, 0.1)' : 'rgba(0, 0, 0, 0.1)',
-                    display: indexAxis === 'y' ? false : true
+                    color: 'rgba(0, 0, 0, 0.1)'
                   }
                 }
               }
-            }
+            },
+            plugins: [ChartDataLabels] // Add data labels plugin
           };
 
           window.timelineChartInstance = new Chart(ctx, chartConfig);
         }
 
-        // Drill down to days for a selected month
-        async function drillDownToDays(month) {
-          const analyticsData = window.currentAnalyticsData;
-          if (!analyticsData || !analyticsData.token) {
-            console.error('Analytics data not available');
-            return;
-          }
-
-          try {
-            const period = analyticsData.period || '7d';
-            const response = await fetch(`/api/analytics-data?metric=timeline&period=${period}&month=${month}`, {
-              headers: { 'Authorization': `Bearer ${analyticsData.token}` }
-            });
-
-            if (response.ok) {
-              const data = await response.json();
-              renderTimelineChart(data, 'days', month, null);
-            } else {
-              console.error('Failed to fetch days data');
-            }
-          } catch (error) {
-            console.error('Error drilling down to days:', error);
-          }
-        }
-
-        // Drill down to hours for a selected day
-        async function drillDownToHours(day) {
-          const analyticsData = window.currentAnalyticsData;
-          if (!analyticsData || !analyticsData.token) {
-            console.error('Analytics data not available');
-            return;
-          }
-
-          try {
-            const period = analyticsData.period || '7d';
-            // Extract month from day (YYYY-MM-DD -> YYYY-MM)
-            const month = day.substring(0, 7);
-            const response = await fetch(`/api/analytics-data?metric=timeline&period=${period}&month=${month}&day=${day}`, {
-              headers: { 'Authorization': `Bearer ${analyticsData.token}` }
-            });
-
-            if (response.ok) {
-              const data = await response.json();
-              renderTimelineChart(data, 'hours', month, day);
-            } else {
-              console.error('Failed to fetch hours data');
-            }
-          } catch (error) {
-            console.error('Error drilling down to hours:', error);
-          }
-        }
-
-        // Go back in timeline hierarchy
-        async function goBackTimeline() {
-          const state = window.timelineState;
-          const analyticsData = window.currentAnalyticsData;
-          
-          if (state.level === 'days') {
-            // Go back to months - reload original timeline data
-            if (window.originalTimelineData) {
-              renderTimelineChart(window.originalTimelineData, 'months');
-            } else if (analyticsData && analyticsData.timeline) {
-              renderTimelineChart(analyticsData.timeline, 'months');
-            } else {
-              // Reload from API
-              try {
-                const period = analyticsData.period || '7d';
-                const token = analyticsData.token;
-                const response = await fetch(`/api/analytics-data?metric=timeline&period=${period}`, {
-                  headers: { 'Authorization': `Bearer ${token}` }
-                });
-                if (response.ok) {
-                  const data = await response.json();
-                  window.originalTimelineData = data;
-                  renderTimelineChart(data, 'months');
-                }
-              } catch (error) {
-                console.error('Error reloading timeline:', error);
-              }
-            }
-          } else if (state.level === 'hours') {
-            // Go back to days
-            if (state.selectedMonth) {
-              await drillDownToDays(state.selectedMonth);
-            }
-          }
-        }
+        // Old drill-down functions removed - replaced by switchTimelineView button selector
 
         // Render Traffic Trend Chart (Daily with comparison)
         function renderTrafficTrendChart(dailyData) {
@@ -1387,12 +1364,20 @@
                   display: false
                 },
                 tooltip: {
-                  backgroundColor: 'rgba(244, 232, 212, 0.95)',
-                  titleColor: '#000',
-                  bodyColor: '#000',
-                  borderColor: '#000',
-                  borderWidth: 1,
-                  padding: 12
+                  enabled: false
+                },
+                datalabels: {
+                  anchor: 'end',
+                  align: 'top',
+                  color: '#000',
+                  font: {
+                    family: "'EB Garamond', serif",
+                    size: 10,
+                    weight: 'bold'
+                  },
+                  formatter: function(value) {
+                    return value > 0 ? value : '';
+                  }
                 }
               },
               scales: {
@@ -1461,12 +1446,20 @@
                   display: false
                 },
                 tooltip: {
-                  backgroundColor: 'rgba(244, 232, 212, 0.95)',
-                  titleColor: '#000',
-                  bodyColor: '#000',
-                  borderColor: '#000',
-                  borderWidth: 1,
-                  padding: 12
+                  enabled: false
+                },
+                datalabels: {
+                  anchor: 'end',
+                  align: 'top',
+                  color: '#000',
+                  font: {
+                    family: "'EB Garamond', serif",
+                    size: 11,
+                    weight: 'bold'
+                  },
+                  formatter: function(value) {
+                    return value > 0 ? value : '';
+                  }
                 }
               },
               scales: {
@@ -1536,17 +1529,20 @@
                   display: false
                 },
                 tooltip: {
-                  backgroundColor: 'rgba(244, 232, 212, 0.95)',
-                  titleColor: '#000',
-                  bodyColor: '#000',
-                  borderColor: '#000',
-                  borderWidth: 1,
-                  padding: 12,
-                  callbacks: {
-                    label: function(context) {
-                      const index = context.dataIndex;
-                      return `${percentages[index]}% (${values[index]} visitors)`;
-                    }
+                  enabled: false
+                },
+                datalabels: {
+                  anchor: 'end',
+                  align: 'right',
+                  color: '#000',
+                  font: {
+                    family: "'EB Garamond', serif",
+                    size: 10,
+                    weight: 'bold'
+                  },
+                  formatter: function(value, context) {
+                    const index = context.dataIndex;
+                    return `${percentages[index]}%`;
                   }
                 }
               },
@@ -1620,17 +1616,20 @@
                   display: false
                 },
                 tooltip: {
-                  backgroundColor: 'rgba(244, 232, 212, 0.95)',
-                  titleColor: '#000',
-                  bodyColor: '#000',
-                  borderColor: '#000',
-                  borderWidth: 1,
-                  padding: 12,
-                  callbacks: {
-                    label: function(context) {
-                      const index = context.dataIndex;
-                      return `${percentages[index]}% (${values[index]} sessions)`;
-                    }
+                  enabled: false
+                },
+                datalabels: {
+                  anchor: 'end',
+                  align: 'right',
+                  color: '#000',
+                  font: {
+                    family: "'EB Garamond', serif",
+                    size: 10,
+                    weight: 'bold'
+                  },
+                  formatter: function(value, context) {
+                    const index = context.dataIndex;
+                    return `${percentages[index]}%`;
                   }
                 }
               },
@@ -1714,21 +1713,19 @@
                   }
                 },
                 tooltip: {
-                  backgroundColor: 'rgba(244, 232, 212, 0.95)',
-                  titleColor: '#000',
-                  bodyColor: '#000',
-                  borderColor: '#000',
-                  borderWidth: 1,
-                  padding: 12,
-                  callbacks: {
-                    label: function(context) {
-                      const label = context.label || '';
-                      const value = context.parsed || 0;
-                      const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                      const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
-                      const category = categories.find(c => c.name === label);
-                      return `${label}: ${value} (${percentage}%) | Bounce: ${category?.bounce_rate || 0}%`;
-                    }
+                  enabled: false
+                },
+                datalabels: {
+                  color: '#fff',
+                  font: {
+                    family: "'EB Garamond', serif",
+                    size: 12,
+                    weight: 'bold'
+                  },
+                  formatter: function(value, context) {
+                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                    const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
+                    return percentage > 5 ? `${percentage}%` : ''; // Only show if > 5%
                   }
                 }
               }
