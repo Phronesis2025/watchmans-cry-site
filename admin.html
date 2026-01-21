@@ -355,7 +355,13 @@
             const [pageviewsRes, visitorsRes, devicesRes, timeonpageRes, timelineRes, growthRes, engagementRes, sourcesRes, contentRes, journeyRes, geographyRes, demographicsRes] = await Promise.all([
               fetch(`/api/analytics-data?metric=pageviews&period=${period}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
-              }).then(r => r.ok ? r.json() : null).catch(() => null),
+              }).then(r => {
+                if (!r.ok) {
+                  console.error('Pageviews API error:', r.status, r.statusText);
+                  return r.json().then(err => { console.error('Error details:', err); return null; }).catch(() => null);
+                }
+                return r.json();
+              }).catch(err => { console.error('Pageviews fetch error:', err); return null; }),
               fetch(`/api/analytics-data?metric=visitors&period=${period}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
               }).then(r => r.ok ? r.json() : null).catch(() => null),

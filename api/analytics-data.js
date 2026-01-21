@@ -23,9 +23,13 @@ if (GA4_SERVICE_ACCOUNT_KEY) {
     analyticsDataClient = new BetaAnalyticsDataClient({
       credentials: credentials
     });
+    console.log('GA4 client initialized successfully. Property ID:', GA4_PROPERTY_ID);
   } catch (error) {
     console.error('Failed to initialize GA4 client:', error);
+    console.error('GA4_SERVICE_ACCOUNT_KEY present but invalid JSON');
   }
+} else {
+  console.warn('GA4_SERVICE_ACCOUNT_KEY environment variable not set. GA4 metrics will not work.');
 }
 
 // Verify Supabase authentication token
@@ -186,37 +190,46 @@ export default async function handler(req, res) {
     switch (metric) {
       case 'pageviews': {
         if (!analyticsDataClient) {
+          console.error('GA4 client not initialized for pageviews metric');
           return res.status(503).json({ error: 'GA4 not configured' });
         }
 
         const { startDate, endDate } = getGA4DateRange(period);
+        console.log(`Fetching pageviews from GA4: ${startDate} to ${endDate}`);
 
-        // Get total pageviews and top pages
-        const [totalResponse, pagesResponse, dailyResponse] = await Promise.all([
-          // Total pageviews
-          analyticsDataClient.runReport({
-            property: `properties/${GA4_PROPERTY_ID}`,
-            dateRanges: [{ startDate, endDate }],
-            metrics: [{ name: 'screenPageViews' }],
-          }),
-          // Top pages
-          analyticsDataClient.runReport({
-            property: `properties/${GA4_PROPERTY_ID}`,
-            dateRanges: [{ startDate, endDate }],
-            dimensions: [{ name: 'pagePath' }],
-            metrics: [{ name: 'screenPageViews' }],
-            orderBys: [{ metric: { metricName: 'screenPageViews' }, desc: true }],
-            limit: 10,
-          }),
-          // Daily breakdown
-          analyticsDataClient.runReport({
-            property: `properties/${GA4_PROPERTY_ID}`,
-            dateRanges: [{ startDate, endDate }],
-            dimensions: [{ name: 'date' }],
-            metrics: [{ name: 'screenPageViews' }],
-            orderBys: [{ dimension: { dimensionName: 'date' } }],
-          }),
-        ]);
+        try {
+          // Get total pageviews and top pages
+          const [totalResponse, pagesResponse, dailyResponse] = await Promise.all([
+            // Total pageviews
+            analyticsDataClient.runReport({
+              property: `properties/${GA4_PROPERTY_ID}`,
+              dateRanges: [{ startDate, endDate }],
+              metrics: [{ name: 'screenPageViews' }],
+            }),
+            // Top pages
+            analyticsDataClient.runReport({
+              property: `properties/${GA4_PROPERTY_ID}`,
+              dateRanges: [{ startDate, endDate }],
+              dimensions: [{ name: 'pagePath' }],
+              metrics: [{ name: 'screenPageViews' }],
+              orderBys: [{ metric: { metricName: 'screenPageViews' }, desc: true }],
+              limit: 10,
+            }),
+            // Daily breakdown
+            analyticsDataClient.runReport({
+              property: `properties/${GA4_PROPERTY_ID}`,
+              dateRanges: [{ startDate, endDate }],
+              dimensions: [{ name: 'date' }],
+              metrics: [{ name: 'screenPageViews' }],
+              orderBys: [{ dimension: { dimensionName: 'date' } }],
+            }),
+          ]);
+
+          console.log('GA4 pageviews response:', {
+            totalRows: totalResponse.rows?.length || 0,
+            pagesRows: pagesResponse.rows?.length || 0,
+            dailyRows: dailyResponse.rows?.length || 0
+          });
 
         // Extract total
         const total = totalResponse.rows?.[0]?.metricValues?.[0]?.value 
@@ -244,11 +257,25 @@ export default async function handler(req, res) {
           return { date, count };
         });
 
-        result = {
-          total,
-          top_pages: topPages,
-          daily: dailyData
-        };
+          result = {
+            total,
+            top_pages: topPages,
+            daily: dailyData
+          };
+        } catch (ga4Error) {
+          console.error('GA4 API error in pageviews:', ga4Error);
+          console.error('Error details:', {
+            message: ga4Error.message,
+            code: ga4Error.code,
+            status: ga4Error.status
+          });
+          // Return empty result instead of throwing
+          result = {
+            total: 0,
+            top_pages: [],
+            daily: []
+          };
+        }
         break;
       }
 
@@ -1407,6 +1434,17 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error('Analytics data error:', error);
-    return res.status(500).json({ error: 'Internal server error' });
+    console.error('Error details:', {
+      message: error.message,
+      stack: error.stack,
+      metric: req.query.metric,
+      period: req.query.period,
+      ga4Configured: !!analyticsDataClient,
+      ga4PropertyId: GA4_PROPERTY_ID
+    });
+    return res.status(500).json({ 
+      error: 'Internal server error',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 }
