@@ -20,11 +20,6 @@
     <title>Watchman Admin</title>
     <link rel="stylesheet" href="css/style.css" />
     <style>
-      /* Heatmap card hover effects */
-      .heatmap-card:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 6px 16px rgba(0,0,0,0.3) !important;
-      }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/supabase-client.js"></script>
@@ -104,11 +99,6 @@
         <h3>Counsel Questions</h3>
         <div id="counsel-data" style="margin-bottom: 2em">
           <p>Loading...</p>
-        </div>
-
-        <h3>Article Engagement Heatmap</h3>
-        <div id="article-heatmap" style="margin-bottom: 2em">
-          <p>Loading article engagement data...</p>
         </div>
 
         <h3>Site Metrics</h3>
@@ -337,9 +327,6 @@
               </p>
             `;
           }
-
-          // Load Article Heatmap
-          loadArticleHeatmap();
 
           // Load Site Metrics (Supabase Analytics)
           loadSiteMetrics();
@@ -1658,21 +1645,11 @@
 
         // ============================================
         // ARTICLE ENGAGEMENT HEATMAP DASHBOARD
+        // REMOVED: All mock data and functions removed
+        // Will be re-implemented with real GA4 API data when ready
         // ============================================
-        
-        // Mock data structure - Replace with GA4 API data in the future
-        // TODO: Replace this mock data with real GA4 API calls
-        // Instructions: 
-        // 1. Set up GA4 API credentials in Google Cloud Console
-        // 2. Enable Google Analytics Reporting API
-        // 3. Create service account and download JSON key
-        // 4. Replace fetchEditionsData() function to call GA4 API
-        // 5. Map GA4 response to this data structure
-        
-        const mockEditions = [
-          {
-            date: "January 16, 2026",
-            url: "index.html",
+
+        // Reset all analytics data
             totalTime: 11520, // seconds (3.2 hours)
             views: 847,
             avgTime: 136, // seconds per reader
@@ -1974,11 +1951,8 @@
           return processGA4Response(response);
           */
           
-          return mockEditions;
+          return []; // No mock data - return empty array
         }
-
-        // Filter and sort editions
-        function filterAndSortEditions() {
           let filtered = [...heatmapState.editions];
 
           // Apply date filter
@@ -2338,15 +2312,8 @@
           }
         }
 
-        // Make heatmap functions globally accessible
-        window.updateHeatmapSort = updateHeatmapSort;
-        window.toggleHeatmapSortOrder = toggleHeatmapSortOrder;
-        window.updateHeatmapDateFilter = updateHeatmapDateFilter;
-        window.updateHeatmapSearch = updateHeatmapSearch;
-        window.exportHeatmapCSV = exportHeatmapCSV;
-        window.showHeatmapTooltip = showHeatmapTooltip;
-        window.hideHeatmapTooltip = hideHeatmapTooltip;
-        window.loadArticleHeatmap = loadArticleHeatmap;
+        // REMOVED: Article Engagement Heatmap global functions
+        // Will be re-implemented when GA4 API integration is complete
       </script>
     </div>
     <!-- Page footer -->
