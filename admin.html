@@ -928,10 +928,24 @@
                 
               </div>
 
-              ${!pageviewsRes && !visitorsRes ? `
-              <div style="padding: 1em; background-color: rgba(244, 232, 212, 0.3); border: 1px solid #000;">
-                <p style="font-size: 0.9em; color: #666;">
-                  No analytics data available yet. Data will appear here once visitors start using the site.
+              ${(!pageviewsRes || (pageviewsRes?.total === 0 && (!visitorsRes || visitorsRes?.unique_visitors === 0))) ? `
+              <div style="padding: 1.5em; background-color: rgba(244, 232, 212, 0.3); border: 2px solid #8b0000; margin-top: 2em;">
+                <h4 style="margin-top: 0; margin-bottom: 0.5em; color: #8b0000;">📊 No Analytics Data Yet</h4>
+                <p style="font-size: 0.9em; color: #4a3a2a; margin-bottom: 0.5em; line-height: 1.5;">
+                  Your analytics dashboard is connected to Google Analytics 4 and ready to track visitors. 
+                  Currently, there is no data to display for the selected time period.
+                </p>
+                <p style="font-size: 0.85em; color: #666; margin-bottom: 0.5em; line-height: 1.5;">
+                  <strong>This is normal if:</strong>
+                </p>
+                <ul style="font-size: 0.85em; color: #666; margin: 0.5em 0; padding-left: 1.5em; line-height: 1.5;">
+                  <li>The site is new or recently set up</li>
+                  <li>No visitors have visited during the selected time period</li>
+                  <li>GA4 tracking was just configured (data can take 24-48 hours to appear)</li>
+                </ul>
+                <p style="font-size: 0.85em; color: #4a3a2a; margin-top: 0.75em; font-style: italic;">
+                  <strong>To verify tracking is working:</strong> Visit your site in a new incognito/private window, 
+                  then check Google Analytics Real-Time reports. Data should appear here within a few minutes.
                 </p>
               </div>
               ` : ''}
