@@ -321,7 +321,7 @@
             const period = periodSelect ? periodSelect.value : '7d';
             const token = session.access_token;
 
-            const [pageviewsRes, visitorsRes, devicesRes, timeonpageRes, hourlyRes, timelineRes, growthRes, engagementRes, sourcesRes, contentRes, journeyRes] = await Promise.all([
+            const [pageviewsRes, visitorsRes, devicesRes, timeonpageRes, hourlyRes, timelineRes, growthRes, engagementRes, sourcesRes, contentRes, journeyRes, visitsRes] = await Promise.all([
               fetch(`/api/analytics-data?metric=pageviews&period=${period}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
               }).then(r => r.ok ? r.json() : null).catch(() => null),
@@ -353,6 +353,9 @@
                 headers: { 'Authorization': `Bearer ${token}` }
               }).then(r => r.ok ? r.json() : null).catch(() => null),
               fetch(`/api/analytics-data?metric=journey&period=${period}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+              }).then(r => r.ok ? r.json() : null).catch(() => null),
+              fetch(`/api/analytics-data?metric=visits&period=${period}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
               }).then(r => r.ok ? r.json() : null).catch(() => null)
             ]);
@@ -706,11 +709,37 @@
               </div>
               ` : ''}
 
-              <!-- Time on Page by Page (2) -->
-              ${timeonpageRes?.by_page?.length > 0 ? `
+              <!-- Recent Visits Table (replaces Average Time on Page chart) -->
+              ${visitsRes?.visits?.length > 0 ? `
               <div style="margin-bottom: 2em; padding: 1em; background-color: rgba(244, 232, 212, 0.3); border: 1px solid #000;">
-                <h4 style="margin-top: 0; margin-bottom: 1em;">Average Time on Page</h4>
-                <canvas id="timeOnPageChart" style="max-height: 400px;"></canvas>
+                <h4 style="margin-top: 0; margin-bottom: 0.5em;">Recent Visits (Exact Times, Locations, Visitor Type)</h4>
+                <p style="font-size: 0.9em; color: #666; margin-bottom: 0.75em;">
+                  Most recent ${visitsRes.visits.length} visits. Times are shown in Central Time (CST/CDT).
+                </p>
+                <div style="overflow-x: auto;">
+                  <table style="width: 100%; border-collapse: collapse; font-size: 0.9em;">
+                    <thead>
+                      <tr style="border-bottom: 2px solid #000; background-color: rgba(244, 232, 212, 0.6);">
+                        <th style="padding: 0.5em; text-align: left;">Time (CST)</th>
+                        <th style="padding: 0.5em; text-align: left;">Page</th>
+                        <th style="padding: 0.5em; text-align: left;">Country</th>
+                        <th style="padding: 0.5em; text-align: left;">Visitor</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${visitsRes.visits.map(visit => `
+                        <tr style="border-bottom: 1px solid #ccc;">
+                          <td style="padding: 0.5em; white-space: nowrap;">${escapeHtml(visit.time_display || 'Unknown')}</td>
+                          <td style="padding: 0.5em;">${escapeHtml(getPageName(visit.path || '/'))}</td>
+                          <td style="padding: 0.5em;">${escapeHtml(visit.country || 'Unknown')}</td>
+                          <td style="padding: 0.5em;">
+                            ${visit.is_returning === null ? 'Unknown' : visit.is_returning ? 'Returning' : 'New'}
+                          </td>
+                        </tr>
+                      `).join('')}
+                    </tbody>
+                  </table>
+                </div>
               </div>
               ` : ''}
 
@@ -737,13 +766,13 @@
             // Store data globally for filtering functionality
             window.currentAnalyticsData = {
               hourly: hourlyRes?.hourly || [],
-              timeOnPage: timeonpageRes?.by_page || [],
               timeline: timelineRes || null,
               growth: growthRes || null,
               engagement: engagementRes || null,
               sources: sourcesRes || null,
               content: contentRes || null,
               journey: journeyRes || null,
+              visits: visitsRes?.visits || [],
               period: period,
               token: token
             };
@@ -821,6 +850,8 @@
             return type.charAt(0).toUpperCase() + type.slice(1);
           });
           const values = reversedData.map(device => device.count);
+          const maxValue = values.length ? Math.max(...values) : 0;
+          const xMax = maxValue === 0 ? 1 : maxValue + Math.ceil(maxValue * 0.1);
 
           window.deviceTypesChartInstance = new Chart(ctx, {
             type: 'bar',
@@ -862,6 +893,7 @@
               scales: {
                 x: {
                   beginAtZero: true,
+                  max: xMax,
                   ticks: {
                     color: '#000',
                     font: {
@@ -892,105 +924,9 @@
 
         // Render Time on Page bar chart
         function renderTimeOnPageChart(data) {
-          // Destroy existing chart if it exists
-          if (window.timeOnPageChartInstance) {
-            window.timeOnPageChartInstance.destroy();
-          }
-
-          const ctx = document.getElementById('timeOnPageChart');
-          if (!ctx) return;
-
-          // Data is already sorted from most to least (highest to lowest average)
-          // Don't reverse so it displays most to least (top to bottom)
-          const labels = data.map(page => getPageName(page.path || '/'));
-          const values = data.map(page => Math.round(page.average));
-
-          window.timeOnPageChartInstance = new Chart(ctx, {
-            type: 'bar',
-            data: {
-              labels: labels,
-              datasets: [{
-                label: 'Average Time (seconds)',
-                data: values,
-                backgroundColor: 'rgba(0, 0, 0, 0.7)',
-                borderColor: '#000',
-                borderWidth: 1
-              }]
-            },
-            options: {
-              indexAxis: 'y', // Horizontal bar chart
-              responsive: true,
-              maintainAspectRatio: true,
-              // Add click interaction
-              onClick: function(event, elements) {
-                if (elements.length > 0) {
-                  // Get the clicked bar index
-                  const clickedIndex = elements[0].index;
-                  // Get the page path from the data
-                  const selectedPage = data[clickedIndex];
-                  if (selectedPage && selectedPage.path) {
-                    // Filter hourly chart by this page
-                    filterHourlyChartByPage(selectedPage.path, getPageName(selectedPage.path || '/'));
-                  }
-                }
-              },
-              // Change cursor to pointer to indicate clickability
-              onHover: function(event, elements) {
-                event.native.target.style.cursor = elements.length > 0 ? 'pointer' : 'default';
-              },
-              plugins: {
-                legend: {
-                  display: false
-                },
-                tooltip: {
-                  enabled: false
-                },
-                datalabels: {
-                  anchor: 'end',
-                  align: 'right',
-                  color: '#000',
-                  font: {
-                    family: "'EB Garamond', serif",
-                    size: 13,
-                    weight: 'bold'
-                  },
-                  formatter: function(value) {
-                    return value > 0 ? value + 's' : '';
-                  }
-                }
-              },
-              scales: {
-                x: {
-                  beginAtZero: true,
-                  ticks: {
-                    color: '#000',
-                    font: {
-                      family: "'EB Garamond', serif",
-                      size: 12
-                    },
-                    callback: function(value) {
-                      return value + 's';
-                    }
-                  },
-                  grid: {
-                    color: 'rgba(0, 0, 0, 0.1)'
-                  }
-                },
-                y: {
-                  ticks: {
-                    color: '#000',
-                    font: {
-                      family: "'EB Garamond', serif",
-                      size: 12
-                    }
-                  },
-                  grid: {
-                    display: false
-                  }
-                }
-              }
-            }
-          });
+          // This function is kept for backwards compatibility but no longer used
+          // The Average Time on Page chart has been replaced with a detailed visits table.
+          return;
         }
 
         // Render Hourly Views line chart
@@ -1012,6 +948,8 @@
             return `${displayHour} ${period}`;
           });
           const values = data.map(item => item.count);
+          const maxValue = values.length ? Math.max(...values) : 0;
+          const yMax = maxValue === 0 ? 1 : maxValue + Math.ceil(maxValue * 0.1);
 
           window.hourlyViewsChartInstance = new Chart(ctx, {
             type: 'line',
@@ -1070,6 +1008,7 @@
                 },
                 y: {
                   beginAtZero: true,
+                  max: yMax,
                   ticks: {
                     color: '#000',
                     font: {
@@ -1302,11 +1241,30 @@
             if (indicator) indicator.textContent = 'Viewing: Months (click a bar to drill down)';
             if (backBtn) backBtn.style.display = 'none';
           } else if (level === 'days') {
-            const monthLabel = selectedMonth ? new Date(selectedMonth + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'selected month';
+            let monthLabel = 'selected month';
+            if (selectedMonth) {
+              const parts = selectedMonth.split('-');
+              if (parts.length === 2) {
+                const year = parseInt(parts[0]);
+                const month = parseInt(parts[1]) - 1;
+                const date = new Date(year, month, 1);
+                monthLabel = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+              }
+            }
             if (indicator) indicator.textContent = `Viewing: Days in ${monthLabel} (click a bar to drill down)`;
             if (backBtn) backBtn.style.display = 'inline-block';
           } else if (level === 'hours') {
-            const dayLabel = selectedDay ? new Date(selectedDay).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'selected day';
+            let dayLabel = 'selected day';
+            if (selectedDay) {
+              const parts = selectedDay.split('-');
+              if (parts.length === 3) {
+                const year = parseInt(parts[0]);
+                const month = parseInt(parts[1]) - 1;
+                const day = parseInt(parts[2]);
+                const date = new Date(year, month, day);
+                dayLabel = date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+              }
+            }
             if (indicator) indicator.textContent = `Viewing: Hours on ${dayLabel}`;
             if (backBtn) backBtn.style.display = 'inline-block';
           }
@@ -1384,6 +1342,10 @@
                 },
                 y: {
                   beginAtZero: true,
+                  max: (function() {
+                    const maxValue = values.length ? Math.max(...values) : 0;
+                    return maxValue === 0 ? 1 : maxValue + Math.ceil(maxValue * 0.1);
+                  })(),
                   ticks: {
                     color: '#000',
                     font: {
@@ -1423,6 +1385,8 @@
             return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
           });
           const values = dailyData.map(item => item.count);
+          const maxValue = values.length ? Math.max(...values) : 0;
+          const yMax = maxValue === 0 ? 1 : maxValue + Math.ceil(maxValue * 0.1);
 
           window.trafficTrendChartInstance = new Chart(ctx, {
             type: 'line',
@@ -1484,6 +1448,7 @@
                 },
                 y: {
                   beginAtZero: true,
+                  max: yMax,
                   ticks: {
                     color: '#000',
                     font: {
@@ -1512,6 +1477,8 @@
 
           const labels = dayData.map(d => d.day);
           const values = dayData.map(d => d.count);
+          const maxValue = values.length ? Math.max(...values) : 0;
+          const yMax = maxValue === 0 ? 1 : maxValue + Math.ceil(maxValue * 0.1);
 
           window.dayOfWeekChartInstance = new Chart(ctx, {
             type: 'bar',
@@ -1564,6 +1531,7 @@
                 },
                 y: {
                   beginAtZero: true,
+                  max: yMax,
                   ticks: {
                     color: '#000',
                     font: {

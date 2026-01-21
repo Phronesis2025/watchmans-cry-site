@@ -424,6 +424,107 @@ export default async function handler(req, res) {
         break;
       }
 
+      case 'visits': {
+        // Recent individual visits with timestamp, country, and returning flag
+        let query = supabase
+          .from('page_views')
+          .select('created_at, page_path, country, session_id')
+          .order('created_at', { ascending: false })
+          .limit(200);
+
+        if (dateFilter) {
+          query = query.gte('created_at', dateFilter);
+        }
+
+        if (excludedIPHashes.length > 0) {
+          excludedIPHashes.forEach(hash => {
+            query = query.neq('hashed_ip', hash);
+          });
+        }
+
+        const { data: visitsRaw } = await query;
+
+        if (!visitsRaw || visitsRaw.length === 0) {
+          result = { visits: [] };
+          break;
+        }
+
+        // Get session info to determine returning visitors
+        const sessionIds = Array.from(new Set(
+          visitsRaw.map(v => v.session_id).filter(id => !!id)
+        ));
+
+        const sessionMap = {};
+        if (sessionIds.length > 0) {
+          const { data: sessions } = await supabase
+            .from('visitor_sessions')
+            .select('session_id, country, is_new_visitor')
+            .in('session_id', sessionIds);
+
+          if (sessions) {
+            sessions.forEach(s => {
+              sessionMap[s.session_id] = s;
+            });
+          }
+        }
+
+        // Helper to convert UTC to Central Time (CST/CDT)
+        function toCST(date) {
+          const utcDate = new Date(date);
+          const formatter = new Intl.DateTimeFormat('en-US', {
+            timeZone: 'America/Chicago',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false
+          });
+          const parts = formatter.formatToParts(utcDate);
+          const year = parseInt(parts.find(p => p.type === 'year').value);
+          const month = parseInt(parts.find(p => p.type === 'month').value) - 1;
+          const day = parseInt(parts.find(p => p.type === 'day').value);
+          const hour = parseInt(parts.find(p => p.type === 'hour').value);
+          const minute = parseInt(parts.find(p => p.type === 'minute').value);
+          const second = parseInt(parts.find(p => p.type === 'second').value);
+          return new Date(year, month, day, hour, minute, second);
+        }
+
+        const visits = visitsRaw.map(v => {
+          const session = v.session_id ? sessionMap[v.session_id] : null;
+          const cstDate = v.created_at ? toCST(new Date(v.created_at)) : null;
+
+          let displayTime = 'Unknown';
+          let isoTime = null;
+          if (cstDate) {
+            const year = cstDate.getFullYear();
+            const month = String(cstDate.getMonth() + 1).padStart(2, '0');
+            const day = String(cstDate.getDate()).padStart(2, '0');
+            const hour = String(cstDate.getHours()).padStart(2, '0');
+            const minute = String(cstDate.getMinutes()).padStart(2, '0');
+            const second = String(cstDate.getSeconds()).padStart(2, '0');
+            displayTime = `${year}-${month}-${day} ${hour}:${minute}:${second} CST`;
+            isoTime = `${year}-${month}-${day}T${hour}:${minute}:${second}`;
+          }
+
+          const normalizedPath = normalizePagePath(v.page_path || '/');
+          const visitCountry = v.country || (session && session.country) || 'Unknown';
+          const isReturning = session ? !session.is_new_visitor : null;
+
+          return {
+            time_iso: isoTime,
+            time_display: displayTime,
+            path: normalizedPath,
+            country: visitCountry,
+            is_returning: isReturning
+          };
+        });
+
+        result = { visits };
+        break;
+      }
+
       case 'hourly': {
         // Get page views with timestamps
         // Optional: filter by page_path if provided
