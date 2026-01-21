@@ -372,26 +372,28 @@
                 <button onclick="resetAnalyticsData()" style="padding: 0.25em 0.75em; background-color: #8b0000; color: #f4e8d4; border: 1px solid #8b0000; font-family: 'EB Garamond', serif; cursor: pointer; font-size: 0.9em;" title="Delete all analytics data and start fresh">Reset All Data</button>
               </div>
               
-              <!-- Enhanced KPI Cards with Trends -->
-              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1em; margin-bottom: 2em;">
+              <!-- Enhanced KPI Cards with Trends (styled like modern stat cards, in site colors) -->
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.25em; margin-bottom: 2em;">
                 <!-- Page Views Card with Growth -->
-                <div style="padding: 1em; background-color: rgba(244, 232, 212, 0.3); border: 1px solid #000; text-align: center;">
-                  <p style="font-size: 0.9em; color: #666; margin-bottom: 0.5em;">Total Page Views</p>
-                  <p style="font-size: 2em; font-weight: 700; margin: 0;">${pageviewsRes?.total || 0}</p>
+                <div style="padding: 1.25em 1.1em; background: linear-gradient(135deg, rgba(244, 232, 212, 0.95), rgba(219, 189, 140, 0.95)); border: 1px solid #000; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.18); text-align: left; position: relative; overflow: hidden;">
+                  <p style="font-size: 0.9em; color: #4a3a2a; margin-bottom: 0.35em; text-transform: uppercase; letter-spacing: 0.04em;">Total Page Views</p>
+                  <p style="font-size: 2em; font-weight: 700; margin: 0; color: #000;">${pageviewsRes?.total || 0}</p>
                   ${growthRes?.pageviews ? `
                     <p style="font-size: 0.85em; margin-top: 0.5em; color: ${growthRes.pageviews.change > 0 ? '#006400' : growthRes.pageviews.change < 0 ? '#8b0000' : '#666'};">
                       ${growthRes.pageviews.change > 0 ? '↗️' : growthRes.pageviews.change < 0 ? '↘️' : '→'} 
                       ${Math.abs(growthRes.pageviews.change)}% vs previous period
                     </p>
-                    <p style="font-size: 0.75em; color: #666; margin-top: 0.25em;">Trend: ${growthRes.pageviews.trend === 'up' ? 'Growing' : growthRes.pageviews.trend === 'down' ? 'Declining' : 'Stable'}</p>
+                    <p style="font-size: 0.8em; color: #666; margin-top: 0.15em;">Trend: ${growthRes.pageviews.trend === 'up' ? 'Growing' : growthRes.pageviews.trend === 'down' ? 'Declining' : 'Stable'}</p>
                   ` : ''}
-                  <p style="font-size: 0.7em; color: #666; margin-top: 0.5em; font-style: italic;">Total number of pages viewed. Shows overall site traffic and content consumption.</p>
+                  <p style="font-size: 0.85em; color: #4a3a2a; margin-top: 0.75em; font-style: italic; line-height: 1.4;">
+                    Total number of pages viewed. Shows overall site traffic and content consumption.
+                  </p>
                 </div>
                 
                 <!-- Unique Visitors Card with Return Rate -->
-                <div style="padding: 1em; background-color: rgba(244, 232, 212, 0.3); border: 1px solid #000; text-align: center;">
-                  <p style="font-size: 0.9em; color: #666; margin-bottom: 0.5em;">Unique Visitors</p>
-                  <p style="font-size: 2em; font-weight: 700; margin: 0;">${visitorsRes?.unique_visitors || 0}</p>
+                <div style="padding: 1.25em 1.1em; background: linear-gradient(135deg, rgba(244, 232, 212, 0.95), rgba(219, 189, 140, 0.95)); border: 1px solid #000; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.18); text-align: left; position: relative; overflow: hidden;">
+                  <p style="font-size: 0.9em; color: #4a3a2a; margin-bottom: 0.35em; text-transform: uppercase; letter-spacing: 0.04em;">Unique Visitors</p>
+                  <p style="font-size: 2em; font-weight: 700; margin: 0; color: #000;">${visitorsRes?.unique_visitors || 0}</p>
                   ${growthRes?.visitors ? `
                     <p style="font-size: 0.85em; margin-top: 0.5em; color: ${growthRes.visitors.change > 0 ? '#006400' : growthRes.visitors.change < 0 ? '#8b0000' : '#666'};">
                       ${growthRes.visitors.change > 0 ? '↗️' : growthRes.visitors.change < 0 ? '↘️' : '→'} 
@@ -399,33 +401,37 @@
                     </p>
                   ` : ''}
                   ${engagementRes?.return_rate !== undefined ? `
-                    <p style="font-size: 0.75em; color: #666; margin-top: 0.25em;">${engagementRes.return_rate}% returning</p>
+                    <p style="font-size: 0.8em; color: #666; margin-top: 0.15em;">${engagementRes.return_rate}% returning</p>
                   ` : ''}
-                  <p style="font-size: 0.85em; color: #666; margin-top: 0.5em; font-style: italic;">Distinct individuals visiting your site. Higher numbers indicate growing audience reach.</p>
+                  <p style="font-size: 0.85em; color: #4a3a2a; margin-top: 0.75em; font-style: italic; line-height: 1.4;">
+                    Distinct individuals visiting your site. Higher numbers indicate growing audience reach.
+                  </p>
                 </div>
                 
                 <!-- Engagement Card (New) -->
-                <div style="padding: 1em; background-color: rgba(244, 232, 212, 0.3); border: 1px solid #000; text-align: center;">
-                  <p style="font-size: 0.9em; color: #666; margin-bottom: 0.5em;">Engagement Quality</p>
+                <div style="padding: 1.25em 1.1em; background: linear-gradient(135deg, rgba(244, 232, 212, 0.95), rgba(219, 189, 140, 0.95)); border: 1px solid #000; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.18); text-align: left; position: relative; overflow: hidden;">
+                  <p style="font-size: 0.9em; color: #4a3a2a; margin-bottom: 0.35em; text-transform: uppercase; letter-spacing: 0.04em;">Engagement Quality</p>
                   ${engagementRes ? `
                     <p style="font-size: 1.5em; font-weight: 700; margin: 0; color: ${engagementRes.bounce_rate < 50 ? '#006400' : engagementRes.bounce_rate < 70 ? '#8b4513' : '#8b0000'};">
                       ${engagementRes.bounce_rate}% bounce
                     </p>
-                    <p style="font-size: 0.75em; color: #666; margin-top: 0.25em;">
+                    <p style="font-size: 0.8em; color: #666; margin-top: 0.15em;">
                       ${engagementRes.pages_per_session?.average || 0} pages/session
                     </p>
                   ` : '<p style="font-size: 1.5em; font-weight: 700; margin: 0;">-</p>'}
-                  <p style="font-size: 0.7em; color: #666; margin-top: 0.5em; font-style: italic;">Bounce rate shows single-page visits. Lower is better—indicates visitors explore multiple pages.</p>
+                  <p style="font-size: 0.85em; color: #4a3a2a; margin-top: 0.75em; font-style: italic; line-height: 1.4;">
+                    Bounce rate shows single-page visits. Lower is better—indicates visitors explore multiple pages.
+                  </p>
                 </div>
                 
                 <!-- Time on Page Card Enhanced -->
-                <div style="padding: 1em; background-color: rgba(244, 232, 212, 0.3); border: 1px solid #000; text-align: center;">
-                  <p style="font-size: 0.9em; color: #666; margin-bottom: 0.5em;">Avg. Time on Page</p>
+                <div style="padding: 1.25em 1.1em; background: linear-gradient(135deg, rgba(244, 232, 212, 0.95), rgba(219, 189, 140, 0.95)); border: 1px solid #000; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.18); text-align: left; position: relative; overflow: hidden;">
+                  <p style="font-size: 0.9em; color: #4a3a2a; margin-bottom: 0.35em; text-transform: uppercase; letter-spacing: 0.04em;">Avg. Time on Page</p>
                   ${timeonpageRes?.overall_average ? `
-                    <p style="font-size: 2em; font-weight: 700; margin: 0;">
+                    <p style="font-size: 2em; font-weight: 700; margin: 0; color: #000;">
                       ${Math.floor(timeonpageRes.overall_average / 60)}m ${timeonpageRes.overall_average % 60}s
                     </p>
-                  ` : '<p style="font-size: 2em; font-weight: 700; margin: 0;">0s</p>'}
+                  ` : '<p style="font-size: 2em; font-weight: 700; margin: 0; color: #000;">0s</p>'}
                   ${growthRes?.time_on_page ? `
                     <p style="font-size: 0.85em; margin-top: 0.5em; color: ${growthRes.time_on_page.change > 0 ? '#006400' : growthRes.time_on_page.change < 0 ? '#8b0000' : '#666'};">
                       ${growthRes.time_on_page.change > 0 ? '↗️' : growthRes.time_on_page.change < 0 ? '↘️' : '→'} 
@@ -440,7 +446,9 @@
                          engagementRes.time_distribution['5min+']) * 100) || 0)}% read 2+ min
                     </p>
                   ` : ''}
-                  <p style="font-size: 0.85em; color: #666; margin-top: 0.5em; font-style: italic;">Average time visitors spend reading (only counts when tab is visible). Higher indicates deeper engagement.</p>
+                  <p style="font-size: 0.85em; color: #4a3a2a; margin-top: 0.75em; font-style: italic; line-height: 1.4;">
+                    Average time visitors spend reading (only counts when tab is visible). Higher indicates deeper engagement.
+                  </p>
                 </div>
               </div>
 
