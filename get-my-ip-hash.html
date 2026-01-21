@@ -8,8 +8,13 @@
     function gtag(){dataLayer.push(arguments);}
     gtag('js', new Date());
 
-    gtag('config', 'G-XCVPZDXKE6');
+    // Configure GA4 with enhanced measurement
+    gtag('config', 'G-XCVPZDXKE6', {
+      send_page_view: true,
+    });
   </script>
+  <!-- Enhanced GA4 tracking for scroll depth, engagement time, outbound clicks, article completion -->
+  <script src="js/ga4-enhanced.js" defer></script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Get My IP Hash - Watchman's Cry</title>
