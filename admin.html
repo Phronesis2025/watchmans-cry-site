@@ -958,9 +958,18 @@
             // This ensures the onchange works even after the HTML is regenerated
             const periodSelectAfter = document.getElementById('analytics-period');
             if (periodSelectAfter) {
+              // Set the value from sessionStorage to ensure it matches
+              const storedPeriod = sessionStorage.getItem('analytics-period');
+              if (storedPeriod && periodSelectAfter.value !== storedPeriod) {
+                console.log('Restoring dropdown value from sessionStorage:', storedPeriod);
+                periodSelectAfter.value = storedPeriod;
+              }
+              
               // Remove any existing listeners and add a fresh one
               periodSelectAfter.onchange = function() {
                 console.log('Period changed to:', this.value);
+                // Store immediately when changed
+                sessionStorage.setItem('analytics-period', this.value);
                 loadSiteMetrics();
               };
             }
