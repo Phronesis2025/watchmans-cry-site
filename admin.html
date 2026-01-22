@@ -348,8 +348,26 @@
             }
 
             // Get selected period from dropdown or default to 7d
+            // Use sessionStorage to persist the selection across HTML regeneration
             const periodSelect = document.getElementById('analytics-period');
-            const period = periodSelect ? periodSelect.value : '7d';
+            let period = '7d'; // default
+            
+            if (periodSelect && periodSelect.value) {
+              // Dropdown exists and has a value - use it and store it
+              period = periodSelect.value;
+              sessionStorage.setItem('analytics-period', period);
+              console.log('Read period from dropdown:', period);
+            } else {
+              // Dropdown doesn't exist yet (first load) - check sessionStorage
+              const stored = sessionStorage.getItem('analytics-period');
+              if (stored) {
+                period = stored;
+                console.log('Read period from sessionStorage:', period);
+              } else {
+                console.log('Using default period: 7d');
+              }
+            }
+            
             const token = session.access_token;
 
             const [pageviewsRes, visitorsRes, devicesRes, timeonpageRes, timelineRes, growthRes, engagementRes, sourcesRes, contentRes, journeyRes, geographyRes, demographicsRes] = await Promise.all([
@@ -958,18 +976,22 @@
             // This ensures the onchange works even after the HTML is regenerated
             const periodSelectAfter = document.getElementById('analytics-period');
             if (periodSelectAfter) {
-              // Set the value from sessionStorage to ensure it matches
-              const storedPeriod = sessionStorage.getItem('analytics-period');
-              if (storedPeriod && periodSelectAfter.value !== storedPeriod) {
-                console.log('Restoring dropdown value from sessionStorage:', storedPeriod);
-                periodSelectAfter.value = storedPeriod;
+              // CRITICAL: Set the dropdown value from the period variable that was used to generate the HTML
+              // This ensures the dropdown matches what was actually queried
+              if (periodSelectAfter.value !== period) {
+                console.log('Syncing dropdown value to match period:', period, '(was:', periodSelectAfter.value, ')');
+                periodSelectAfter.value = period;
               }
+              
+              // Also ensure sessionStorage matches
+              sessionStorage.setItem('analytics-period', period);
               
               // Remove any existing listeners and add a fresh one
               periodSelectAfter.onchange = function() {
-                console.log('Period changed to:', this.value);
+                const newPeriod = this.value;
+                console.log('Period changed to:', newPeriod);
                 // Store immediately when changed
-                sessionStorage.setItem('analytics-period', this.value);
+                sessionStorage.setItem('analytics-period', newPeriod);
                 loadSiteMetrics();
               };
             }
