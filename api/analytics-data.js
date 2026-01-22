@@ -24,12 +24,14 @@ if (GA4_SERVICE_ACCOUNT_KEY) {
       credentials: credentials
     });
     console.log('GA4 client initialized successfully. Property ID:', GA4_PROPERTY_ID);
+    console.log('GA4 client email:', credentials.client_email);
   } catch (error) {
     console.error('Failed to initialize GA4 client:', error);
     console.error('GA4_SERVICE_ACCOUNT_KEY present but invalid JSON');
   }
 } else {
   console.warn('GA4_SERVICE_ACCOUNT_KEY environment variable not set. GA4 metrics will not work.');
+  console.warn('Available env vars:', Object.keys(process.env).filter(k => k.includes('GA4') || k.includes('ANALYTICS')).join(', ') || 'none');
 }
 
 // Verify Supabase authentication token
@@ -285,7 +287,13 @@ export default async function handler(req, res) {
             console.warn('GA4 returned rowCount > 0 but no rows array');
           }
           
-          console.log('Pageviews extracted:', { total, rowCount: totalResponse?.rowCount, hasRows: !!totalResponse?.rows?.length });
+          console.log('Pageviews extracted:', { 
+            total, 
+            rowCount: totalResponse?.rowCount, 
+            hasRows: !!totalResponse?.rows?.length,
+            responseType: typeof totalResponse,
+            responseKeys: totalResponse ? Object.keys(totalResponse).slice(0, 5) : []
+          });
 
         // Extract top pages - use pagesResponse directly
         const topPages = (pagesResponse?.rows || []).map(row => {
@@ -355,7 +363,14 @@ export default async function handler(req, res) {
           const newUsers = row ? parseInt(row.metricValues?.[1]?.value || '0', 10) : 0;
           const totalSessions = row ? parseInt(row.metricValues?.[2]?.value || '0', 10) : 0;
 
-          console.log('Visitors extracted:', { totalUsers, newUsers, totalSessions, rowCount: visitorsResponse?.rowCount });
+          console.log('Visitors extracted:', { 
+            totalUsers, 
+            newUsers, 
+            totalSessions, 
+            rowCount: visitorsResponse?.rowCount,
+            hasRows: !!visitorsResponse?.rows?.length,
+            responseType: typeof visitorsResponse
+          });
 
           result = {
             unique_visitors: totalUsers,
