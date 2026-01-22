@@ -122,6 +122,7 @@ function getGA4DateRange(period) {
     startDate = formatDate(start);
   }
 
+  console.log(`GA4 Date Range for period "${period}": ${startDate} to ${endDate}`);
   return { startDate, endDate };
 }
 
@@ -195,7 +196,7 @@ export default async function handler(req, res) {
         }
 
         const { startDate, endDate } = getGA4DateRange(period);
-        console.log(`Fetching pageviews from GA4: ${startDate} to ${endDate}`);
+        console.log(`Fetching pageviews from GA4: ${startDate} to ${endDate}, Property: properties/${GA4_PROPERTY_ID}`);
 
         try {
           // Get total pageviews and top pages
@@ -228,13 +229,16 @@ export default async function handler(req, res) {
           console.log('GA4 pageviews response:', {
             totalRows: totalResponse.rows?.length || 0,
             pagesRows: pagesResponse.rows?.length || 0,
-            dailyRows: dailyResponse.rows?.length || 0
+            dailyRows: dailyResponse.rows?.length || 0,
+            totalValue: totalResponse.rows?.[0]?.metricValues?.[0]?.value,
+            totalResponseFull: JSON.stringify(totalResponse, null, 2).substring(0, 500)
           });
 
-        // Extract total
-        const total = totalResponse.rows?.[0]?.metricValues?.[0]?.value 
-          ? parseInt(totalResponse.rows[0].metricValues[0].value) 
-          : 0;
+        // Extract total - GA4 returns values as strings
+        const totalValue = totalResponse.rows?.[0]?.metricValues?.[0]?.value;
+        console.log('Extracting total pageviews:', { totalValue, type: typeof totalValue });
+        const total = totalValue ? parseInt(totalValue) : 0;
+        console.log('Final total:', total);
 
         // Extract top pages
         const topPages = (pagesResponse.rows || []).map(row => {
@@ -281,31 +285,57 @@ export default async function handler(req, res) {
 
       case 'visitors': {
         if (!analyticsDataClient) {
+          console.error('GA4 client not initialized for visitors metric');
           return res.status(503).json({ error: 'GA4 not configured' });
         }
 
         const { startDate, endDate } = getGA4DateRange(period);
+        console.log(`Fetching visitors from GA4: ${startDate} to ${endDate}, Property: ${GA4_PROPERTY_ID}`);
 
-        const visitorsResponse = await analyticsDataClient.runReport({
-          property: `properties/${GA4_PROPERTY_ID}`,
-          dateRanges: [{ startDate, endDate }],
-          metrics: [
-            { name: 'totalUsers' },
-            { name: 'newUsers' },
-            { name: 'sessions' }
-          ],
-        });
+        try {
+          const visitorsResponse = await analyticsDataClient.runReport({
+            property: `properties/${GA4_PROPERTY_ID}`,
+            dateRanges: [{ startDate, endDate }],
+            metrics: [
+              { name: 'totalUsers' },
+              { name: 'newUsers' },
+              { name: 'sessions' }
+            ],
+          });
 
-        const row = visitorsResponse.rows?.[0];
-        const totalUsers = row ? parseInt(row.metricValues[0].value || '0') : 0;
-        const newUsers = row ? parseInt(row.metricValues[1].value || '0') : 0;
-        const totalSessions = row ? parseInt(row.metricValues[2].value || '0') : 0;
+          console.log('GA4 visitors response:', {
+            rowsCount: visitorsResponse.rows?.length || 0,
+            firstRow: visitorsResponse.rows?.[0] ? {
+              metricValues: visitorsResponse.rows[0].metricValues?.map(m => m.value)
+            } : null,
+            fullResponse: JSON.stringify(visitorsResponse, null, 2).substring(0, 500)
+          });
 
-        result = {
-          unique_visitors: totalUsers,
-          new_visitors: newUsers,
-          total_sessions: totalSessions
-        };
+          const row = visitorsResponse.rows?.[0];
+          const totalUsers = row ? parseInt(row.metricValues[0].value || '0') : 0;
+          const newUsers = row ? parseInt(row.metricValues[1].value || '0') : 0;
+          const totalSessions = row ? parseInt(row.metricValues[2].value || '0') : 0;
+
+          console.log('Extracted visitors:', { totalUsers, newUsers, totalSessions });
+
+          result = {
+            unique_visitors: totalUsers,
+            new_visitors: newUsers,
+            total_sessions: totalSessions
+          };
+        } catch (ga4Error) {
+          console.error('GA4 API error in visitors:', ga4Error);
+          console.error('Error details:', {
+            message: ga4Error.message,
+            code: ga4Error.code,
+            status: ga4Error.status
+          });
+          result = {
+            unique_visitors: 0,
+            new_visitors: 0,
+            total_sessions: 0
+          };
+        }
         break;
       }
 
