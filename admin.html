@@ -409,6 +409,7 @@
                       <option value="all" ${period === 'all' ? 'selected' : ''}>All time</option>
                     </select>
                     <button onclick="loadSiteMetrics()" style="margin-left: 0.5em; padding: 0.5em 1em; background-color: #000; color: #f4e8d4; border: none; font-family: 'EB Garamond', serif; cursor: pointer; font-size: 1em;">Refresh</button>
+                    <span style="margin-left: 0.5em; font-size: 0.85em; color: #666;">Current: ${period === '7d' ? 'Last 7 days' : period === '30d' ? 'Last 30 days' : 'All time'}</span>
                   </div>
                   <button onclick="resetAnalyticsData()" style="padding: 0.5em 1em; background-color: #8b0000; color: #f4e8d4; border: 1px solid #8b0000; font-family: 'EB Garamond', serif; cursor: pointer; font-size: 0.9em;" title="Delete all analytics data and start fresh">Reset All Data</button>
                 </div>
