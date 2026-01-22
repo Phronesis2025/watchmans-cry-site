@@ -370,19 +370,32 @@
             
             const token = session.access_token;
 
+            console.log('Fetching metrics for period:', period);
             const [pageviewsRes, visitorsRes, devicesRes, timeonpageRes, timelineRes, growthRes, engagementRes, sourcesRes, contentRes, journeyRes, geographyRes, demographicsRes] = await Promise.all([
               fetch(`/api/analytics-data?metric=pageviews&period=${period}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
-              }).then(r => {
+              }).then(async r => {
                 if (!r.ok) {
                   console.error('Pageviews API error:', r.status, r.statusText);
-                  return r.json().then(err => { console.error('Error details:', err); return null; }).catch(() => null);
+                  const errorText = await r.text();
+                  console.error('Error response:', errorText);
+                  return null;
                 }
-                return r.json();
+                const data = await r.json();
+                console.log('Pageviews API response:', { total: data?.total, topPages: data?.top_pages?.length, daily: data?.daily?.length });
+                return data;
               }).catch(err => { console.error('Pageviews fetch error:', err); return null; }),
               fetch(`/api/analytics-data?metric=visitors&period=${period}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
-              }).then(r => r.ok ? r.json() : null).catch(() => null),
+              }).then(async r => {
+                if (!r.ok) {
+                  console.error('Visitors API error:', r.status, r.statusText);
+                  return null;
+                }
+                const data = await r.json();
+                console.log('Visitors API response:', { unique: data?.unique_visitors, new: data?.new_visitors, sessions: data?.total_sessions });
+                return data;
+              }).catch(err => { console.error('Visitors fetch error:', err); return null; }),
               fetch(`/api/analytics-data?metric=devices&period=${period}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
               }).then(r => r.ok ? r.json() : null).catch(() => null),
