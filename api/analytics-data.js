@@ -94,35 +94,35 @@ function getDateFilter(period) {
 
 // Get GA4 date range based on period
 function getGA4DateRange(period) {
+  // Use UTC to avoid timezone issues
   const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const todayUTC = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
   
   const formatDate = (date) => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
+    const year = date.getUTCFullYear();
+    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(date.getUTCDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
   };
 
-  const endDate = formatDate(today);
+  const endDate = formatDate(todayUTC);
   let startDate;
 
   if (period === '7d') {
-    const start = new Date(today);
-    start.setDate(start.getDate() - 6); // 7 days including today
+    const start = new Date(todayUTC);
+    start.setUTCDate(start.getUTCDate() - 6); // 7 days including today
     startDate = formatDate(start);
   } else if (period === '30d') {
-    const start = new Date(today);
-    start.setDate(start.getDate() - 29); // 30 days including today
+    const start = new Date(todayUTC);
+    start.setUTCDate(start.getUTCDate() - 29); // 30 days including today
     startDate = formatDate(start);
   } else {
-    // 'all' - use a reasonable start date (e.g., 2 years ago or property creation)
-    const start = new Date(today);
-    start.setFullYear(start.getFullYear() - 2);
-    startDate = formatDate(start);
+    // 'all' - use a date that covers the data (from CSV: data starts Dec 25, 2025)
+    // Use December 2025 as start to ensure we capture all data
+    startDate = '2025-12-01';
   }
 
-  console.log(`GA4 Date Range for period "${period}": ${startDate} to ${endDate}`);
+  console.log(`GA4 Date Range for period "${period}": ${startDate} to ${endDate} (UTC)`);
   return { startDate, endDate };
 }
 
@@ -219,10 +219,10 @@ export default async function handler(req, res) {
             dateRange: `${wideStartDate} to ${endDate}`
           });
           
-          // Also try with "all time" - use a date from when GA4 was created
+          // Also try with "all time" - use a date that covers the actual data (from CSV: starts Dec 25, 2025)
           const allTimeResponse = await analyticsDataClient.runReport({
             property: propertyPath,
-            dateRanges: [{ startDate: '2020-01-01', endDate }],
+            dateRanges: [{ startDate: '2025-12-01', endDate }], // Start from Dec 2025 to capture all data
             metrics: [{ name: 'screenPageViews' }],
             limit: 1
           });
