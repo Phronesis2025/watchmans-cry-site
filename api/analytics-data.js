@@ -196,7 +196,27 @@ export default async function handler(req, res) {
         }
 
         const { startDate, endDate } = getGA4DateRange(period);
-        console.log(`Fetching pageviews from GA4: ${startDate} to ${endDate}, Property: properties/${GA4_PROPERTY_ID}`);
+        const propertyPath = `properties/${GA4_PROPERTY_ID}`;
+        console.log(`Fetching pageviews from GA4: ${startDate} to ${endDate}, Property: ${propertyPath}`);
+        
+        // First, try to verify property access with a simple query
+        try {
+          const testResponse = await analyticsDataClient.runReport({
+            property: propertyPath,
+            dateRanges: [{ startDate: '2020-01-01', endDate }], // Wide date range to test access
+            metrics: [{ name: 'sessions' }],
+            limit: 1
+          });
+          console.log('Property access test - sessions found:', testResponse.rowCount || 0);
+        } catch (testError) {
+          console.error('Property access test failed:', {
+            message: testError.message,
+            code: testError.code,
+            status: testError.status,
+            property: propertyPath
+          });
+          // Continue anyway - might just be no data
+        }
 
         try {
           // Get total pageviews and top pages
@@ -231,8 +251,17 @@ export default async function handler(req, res) {
             pagesRows: pagesResponse.rows?.length || 0,
             dailyRows: dailyResponse.rows?.length || 0,
             totalValue: totalResponse.rows?.[0]?.metricValues?.[0]?.value,
-            totalResponseFull: JSON.stringify(totalResponse, null, 2).substring(0, 500)
+            totalRowCount: totalResponse.rowCount,
+            pagesRowCount: pagesResponse.rowCount,
+            dailyRowCount: dailyResponse.rowCount,
+            totalResponseFull: JSON.stringify(totalResponse, null, 2).substring(0, 1000),
+            metadata: totalResponse.metadata ? JSON.stringify(totalResponse.metadata, null, 2).substring(0, 500) : 'no metadata'
           });
+          
+          // If no rows but rowCount > 0, there might be a sampling issue
+          if (totalResponse.rowCount > 0 && (!totalResponse.rows || totalResponse.rows.length === 0)) {
+            console.warn('GA4 returned rowCount > 0 but no rows - possible sampling or data issue');
+          }
 
         // Extract total - GA4 returns values as strings
         const totalValue = totalResponse.rows?.[0]?.metricValues?.[0]?.value;
