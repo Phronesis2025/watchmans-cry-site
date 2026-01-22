@@ -199,23 +199,46 @@ export default async function handler(req, res) {
         const propertyPath = `properties/${GA4_PROPERTY_ID}`;
         console.log(`Fetching pageviews from GA4: ${startDate} to ${endDate}, Property: ${propertyPath}`);
         
-        // First, try to verify property access with a simple query
+        // First, try to verify property access with a simple query using a very wide date range
         try {
+          const today = new Date();
+          const twoYearsAgo = new Date(today);
+          twoYearsAgo.setFullYear(today.getFullYear() - 2);
+          const wideStartDate = twoYearsAgo.toISOString().split('T')[0];
+          
           const testResponse = await analyticsDataClient.runReport({
             property: propertyPath,
-            dateRanges: [{ startDate: '2020-01-01', endDate }], // Wide date range to test access
+            dateRanges: [{ startDate: wideStartDate, endDate }], // Very wide date range
             metrics: [{ name: 'sessions' }],
             limit: 1
           });
-          console.log('Property access test - sessions found:', testResponse.rowCount || 0);
+          console.log('Property access test (wide range):', {
+            rowCount: testResponse.rowCount || 0,
+            rowsLength: testResponse.rows?.length || 0,
+            hasData: (testResponse.rowCount || 0) > 0,
+            dateRange: `${wideStartDate} to ${endDate}`
+          });
+          
+          // Also try with "all time" - use a date from when GA4 was created
+          const allTimeResponse = await analyticsDataClient.runReport({
+            property: propertyPath,
+            dateRanges: [{ startDate: '2020-01-01', endDate }],
+            metrics: [{ name: 'screenPageViews' }],
+            limit: 1
+          });
+          console.log('All-time test query:', {
+            rowCount: allTimeResponse.rowCount || 0,
+            rowsLength: allTimeResponse.rows?.length || 0,
+            value: allTimeResponse.rows?.[0]?.metricValues?.[0]?.value || 'none'
+          });
         } catch (testError) {
           console.error('Property access test failed:', {
             message: testError.message,
             code: testError.code,
             status: testError.status,
-            property: propertyPath
+            property: propertyPath,
+            fullError: JSON.stringify(testError, Object.getOwnPropertyNames(testError)).substring(0, 500)
           });
-          // Continue anyway - might just be no data
         }
 
         try {
@@ -254,13 +277,21 @@ export default async function handler(req, res) {
             totalRowCount: totalResponse.rowCount,
             pagesRowCount: pagesResponse.rowCount,
             dailyRowCount: dailyResponse.rowCount,
-            totalResponseFull: JSON.stringify(totalResponse, null, 2).substring(0, 1000),
+            dateRange: `${startDate} to ${endDate}`,
+            property: propertyPath,
+            totalResponseKeys: Object.keys(totalResponse || {}),
+            totalResponseFull: JSON.stringify(totalResponse, null, 2).substring(0, 2000),
             metadata: totalResponse.metadata ? JSON.stringify(totalResponse.metadata, null, 2).substring(0, 500) : 'no metadata'
           });
           
           // If no rows but rowCount > 0, there might be a sampling issue
           if (totalResponse.rowCount > 0 && (!totalResponse.rows || totalResponse.rows.length === 0)) {
             console.warn('GA4 returned rowCount > 0 but no rows - possible sampling or data issue');
+          }
+          
+          // If rowCount is null/undefined but we have rows, log that too
+          if ((!totalResponse.rowCount || totalResponse.rowCount === 0) && totalResponse.rows && totalResponse.rows.length > 0) {
+            console.warn('GA4 returned rows but rowCount is 0 - response structure issue');
           }
 
         // Extract total - GA4 returns values as strings
