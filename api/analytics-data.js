@@ -272,48 +272,63 @@ export default async function handler(req, res) {
             }),
           ]);
 
+          // CRITICAL FIX: The response from GA4 API is the response object directly
+          // Promise.all returns [response1, response2, response3], so totalResponse IS the first response
+          // But the log shows it might be wrapped - let's check the actual structure
+          console.log('DEBUG: totalResponse type check:', {
+            isArray: Array.isArray(totalResponse),
+            type: typeof totalResponse,
+            hasRows: 'rows' in (totalResponse || {}),
+            hasRowCount: 'rowCount' in (totalResponse || {}),
+            keys: Object.keys(totalResponse || {}).slice(0, 10)
+          });
+          
+          const actualTotalResponse = totalResponse; // Promise.all already destructured it
+          const actualPagesResponse = pagesResponse;
+          const actualDailyResponse = dailyResponse;
+          
           console.log('GA4 pageviews response:', {
-            totalRows: totalResponse.rows?.length || 0,
-            pagesRows: pagesResponse.rows?.length || 0,
-            dailyRows: dailyResponse.rows?.length || 0,
-            totalValue: totalResponse.rows?.[0]?.metricValues?.[0]?.value,
-            totalRowCount: totalResponse.rowCount,
-            pagesRowCount: pagesResponse.rowCount,
-            dailyRowCount: dailyResponse.rowCount,
+            totalRows: actualTotalResponse?.rows?.length || 0,
+            pagesRows: actualPagesResponse?.rows?.length || 0,
+            dailyRows: actualDailyResponse?.rows?.length || 0,
+            totalValue: actualTotalResponse?.rows?.[0]?.metricValues?.[0]?.value,
+            totalRowCount: actualTotalResponse?.rowCount,
+            pagesRowCount: actualPagesResponse?.rowCount,
+            dailyRowCount: actualDailyResponse?.rowCount,
             dateRange: `${startDate} to ${endDate}`,
             property: propertyPath,
-            totalResponseKeys: Object.keys(totalResponse || {}),
-            totalResponseFull: JSON.stringify(totalResponse, null, 2).substring(0, 2000),
-            metadata: totalResponse.metadata ? JSON.stringify(totalResponse.metadata, null, 2).substring(0, 500) : 'no metadata',
+            totalResponseType: Array.isArray(totalResponse) ? 'array' : typeof totalResponse,
+            totalResponseKeys: Object.keys(actualTotalResponse || {}),
+            totalResponseFull: JSON.stringify(actualTotalResponse, null, 2).substring(0, 2000),
+            metadata: actualTotalResponse?.metadata ? JSON.stringify(actualTotalResponse.metadata, null, 2).substring(0, 500) : 'no metadata',
             // Check if rowCount exists and is > 0 even if rows array is empty
-            hasDataByRowCount: (totalResponse.rowCount || 0) > 0,
-            hasDataByRows: (totalResponse.rows?.length || 0) > 0
+            hasDataByRowCount: (actualTotalResponse?.rowCount || 0) > 0,
+            hasDataByRows: (actualTotalResponse?.rows?.length || 0) > 0
           });
           
           // CRITICAL: GA4 may return rowCount > 0 but empty rows array
           // If rowCount > 0, we have data even if rows is empty
-          if ((totalResponse.rowCount || 0) > 0 && (!totalResponse.rows || totalResponse.rows.length === 0)) {
+          if ((actualTotalResponse?.rowCount || 0) > 0 && (!actualTotalResponse?.rows || actualTotalResponse.rows.length === 0)) {
             console.warn('GA4 returned rowCount > 0 but no rows - this is unusual, checking response structure');
-            console.warn('Full response structure:', JSON.stringify(totalResponse, null, 2));
+            console.warn('Full response structure:', JSON.stringify(actualTotalResponse, null, 2));
           }
           
           // If rowCount is null/undefined but we have rows, log that too
-          if ((!totalResponse.rowCount || totalResponse.rowCount === 0) && totalResponse.rows && totalResponse.rows.length > 0) {
+          if ((!actualTotalResponse?.rowCount || actualTotalResponse.rowCount === 0) && actualTotalResponse?.rows && actualTotalResponse.rows.length > 0) {
             console.warn('GA4 returned rows but rowCount is 0 - response structure issue');
           }
 
         // Extract total - GA4 returns values as strings
         // IMPORTANT: Check rowCount first - if > 0, we have data even if rows array is empty
         let total = 0;
-        if ((totalResponse.rowCount || 0) > 0) {
-          if (totalResponse.rows && totalResponse.rows.length > 0) {
-            const totalValue = totalResponse.rows[0].metricValues?.[0]?.value;
+        if ((actualTotalResponse?.rowCount || 0) > 0) {
+          if (actualTotalResponse?.rows && actualTotalResponse.rows.length > 0) {
+            const totalValue = actualTotalResponse.rows[0].metricValues?.[0]?.value;
             total = totalValue ? parseInt(totalValue) : 0;
-            console.log('Extracted total from rows:', total);
+            console.log('Extracted total from rows:', total, 'from value:', totalValue);
           } else {
             // rowCount > 0 but no rows - this shouldn't happen, but log it
             console.warn('rowCount > 0 but rows array is empty - cannot extract value');
-            // Try to use rowCount as a fallback? No, rowCount is number of rows, not the metric value
             total = 0;
           }
         } else {
@@ -322,7 +337,7 @@ export default async function handler(req, res) {
         console.log('Final total pageviews:', total);
 
         // Extract top pages
-        const topPages = (pagesResponse.rows || []).map(row => {
+        const topPages = (actualPagesResponse?.rows || []).map(row => {
           const path = row.dimensionValues[0].value || '/';
           const count = parseInt(row.metricValues[0].value || '0');
           return {
@@ -332,7 +347,7 @@ export default async function handler(req, res) {
         });
 
         // Extract daily data (GA4 returns dates in YYYYMMDD format)
-        const dailyData = (dailyResponse.rows || []).map(row => {
+        const dailyData = (actualDailyResponse?.rows || []).map(row => {
           const dateStr = row.dimensionValues[0].value || '';
           // Convert YYYYMMDD to YYYY-MM-DD
           const date = dateStr.length === 8 
