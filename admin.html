@@ -403,7 +403,7 @@
                 <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5em;">
                   <div>
                     <label style="font-weight: 700; margin-right: 0.5em;">Time Period:</label>
-                    <select id="analytics-period" onchange="loadSiteMetrics()" style="padding: 0.5em; border: 1px solid #000; font-family: 'EB Garamond', serif; font-size: 1em;">
+                    <select id="analytics-period" style="padding: 0.5em; border: 1px solid #000; font-family: 'EB Garamond', serif; font-size: 1em;">
                       <option value="7d" ${period === '7d' ? 'selected' : ''}>Last 7 days</option>
                       <option value="30d" ${period === '30d' ? 'selected' : ''}>Last 30 days</option>
                       <option value="all" ${period === 'all' ? 'selected' : ''}>All time</option>
@@ -953,6 +953,17 @@
             `;
 
             metricsEl.innerHTML = html;
+            
+            // Re-attach event listener to the dropdown after HTML is inserted
+            // This ensures the onchange works even after the HTML is regenerated
+            const periodSelectAfter = document.getElementById('analytics-period');
+            if (periodSelectAfter) {
+              // Remove any existing listeners and add a fresh one
+              periodSelectAfter.onchange = function() {
+                console.log('Period changed to:', this.value);
+                loadSiteMetrics();
+              };
+            }
             
             // Store data globally for filtering functionality
             window.currentAnalyticsData = {
