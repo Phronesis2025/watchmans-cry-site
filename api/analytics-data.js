@@ -357,8 +357,8 @@ export default async function handler(req, res) {
         }
         console.log('Final total pageviews:', total);
 
-        // Extract top pages
-        const topPages = (actualPagesResponse?.rows || []).map(row => {
+        // Extract top pages - use pagesResponse directly
+        const topPages = (pagesResponse?.rows || []).map(row => {
           const path = row.dimensionValues[0].value || '/';
           const count = parseInt(row.metricValues[0].value || '0');
           return {
@@ -367,8 +367,8 @@ export default async function handler(req, res) {
           };
         });
 
-        // Extract daily data (GA4 returns dates in YYYYMMDD format)
-        const dailyData = (actualDailyResponse?.rows || []).map(row => {
+        // Extract daily data (GA4 returns dates in YYYYMMDD format) - use dailyResponse directly
+        const dailyData = (dailyResponse?.rows || []).map(row => {
           const dateStr = row.dimensionValues[0].value || '';
           // Convert YYYYMMDD to YYYY-MM-DD
           const date = dateStr.length === 8 
