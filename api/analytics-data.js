@@ -243,12 +243,15 @@ export default async function handler(req, res) {
 
         try {
           // Get total pageviews and top pages
+          // IMPORTANT: GA4 requires at least one dimension when querying, or use keepEmptyRows
           const [totalResponse, pagesResponse, dailyResponse] = await Promise.all([
-            // Total pageviews
+            // Total pageviews - GA4 may return empty rows array even when rowCount > 0
+            // So we check rowCount, not rows.length
             analyticsDataClient.runReport({
               property: `properties/${GA4_PROPERTY_ID}`,
               dateRanges: [{ startDate, endDate }],
               metrics: [{ name: 'screenPageViews' }],
+              keepEmptyRows: false, // Don't return rows with zero values
             }),
             // Top pages
             analyticsDataClient.runReport({
@@ -281,12 +284,17 @@ export default async function handler(req, res) {
             property: propertyPath,
             totalResponseKeys: Object.keys(totalResponse || {}),
             totalResponseFull: JSON.stringify(totalResponse, null, 2).substring(0, 2000),
-            metadata: totalResponse.metadata ? JSON.stringify(totalResponse.metadata, null, 2).substring(0, 500) : 'no metadata'
+            metadata: totalResponse.metadata ? JSON.stringify(totalResponse.metadata, null, 2).substring(0, 500) : 'no metadata',
+            // Check if rowCount exists and is > 0 even if rows array is empty
+            hasDataByRowCount: (totalResponse.rowCount || 0) > 0,
+            hasDataByRows: (totalResponse.rows?.length || 0) > 0
           });
           
-          // If no rows but rowCount > 0, there might be a sampling issue
-          if (totalResponse.rowCount > 0 && (!totalResponse.rows || totalResponse.rows.length === 0)) {
-            console.warn('GA4 returned rowCount > 0 but no rows - possible sampling or data issue');
+          // CRITICAL: GA4 may return rowCount > 0 but empty rows array
+          // If rowCount > 0, we have data even if rows is empty
+          if ((totalResponse.rowCount || 0) > 0 && (!totalResponse.rows || totalResponse.rows.length === 0)) {
+            console.warn('GA4 returned rowCount > 0 but no rows - this is unusual, checking response structure');
+            console.warn('Full response structure:', JSON.stringify(totalResponse, null, 2));
           }
           
           // If rowCount is null/undefined but we have rows, log that too
@@ -295,10 +303,23 @@ export default async function handler(req, res) {
           }
 
         // Extract total - GA4 returns values as strings
-        const totalValue = totalResponse.rows?.[0]?.metricValues?.[0]?.value;
-        console.log('Extracting total pageviews:', { totalValue, type: typeof totalValue });
-        const total = totalValue ? parseInt(totalValue) : 0;
-        console.log('Final total:', total);
+        // IMPORTANT: Check rowCount first - if > 0, we have data even if rows array is empty
+        let total = 0;
+        if ((totalResponse.rowCount || 0) > 0) {
+          if (totalResponse.rows && totalResponse.rows.length > 0) {
+            const totalValue = totalResponse.rows[0].metricValues?.[0]?.value;
+            total = totalValue ? parseInt(totalValue) : 0;
+            console.log('Extracted total from rows:', total);
+          } else {
+            // rowCount > 0 but no rows - this shouldn't happen, but log it
+            console.warn('rowCount > 0 but rows array is empty - cannot extract value');
+            // Try to use rowCount as a fallback? No, rowCount is number of rows, not the metric value
+            total = 0;
+          }
+        } else {
+          console.log('No data: rowCount is 0 or undefined');
+        }
+        console.log('Final total pageviews:', total);
 
         // Extract top pages
         const topPages = (pagesResponse.rows || []).map(row => {
