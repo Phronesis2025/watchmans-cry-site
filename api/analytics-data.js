@@ -287,27 +287,40 @@ export default async function handler(req, res) {
           });
           
           // Use the responses directly - Promise.all already destructured them
+          // totalResponse, pagesResponse, dailyResponse are already the individual response objects
           const actualTotalResponse = totalResponse;
           const actualPagesResponse = pagesResponse;
           const actualDailyResponse = dailyResponse;
           
-          console.log('GA4 pageviews response:', {
-            totalRows: actualTotalResponse?.rows?.length || 0,
-            pagesRows: actualPagesResponse?.rows?.length || 0,
-            dailyRows: actualDailyResponse?.rows?.length || 0,
-            totalValue: actualTotalResponse?.rows?.[0]?.metricValues?.[0]?.value,
-            totalRowCount: actualTotalResponse?.rowCount,
-            pagesRowCount: actualPagesResponse?.rowCount,
-            dailyRowCount: actualDailyResponse?.rowCount,
+          // CRITICAL: The log shows the response has data but we're accessing it wrong
+          // The stringified response shows: [{rows: [...], rowCount: 1}, null, null]
+          // This means Promise.all returned [response1, response2, response3] correctly
+          // But when we stringify, it shows the array structure
+          // Let's verify the actual structure and extract correctly
+          console.log('GA4 pageviews response structure:', {
+            totalResponseIsArray: Array.isArray(totalResponse),
+            totalResponseType: typeof totalResponse,
+            totalResponseHasRows: totalResponse && 'rows' in totalResponse,
+            totalResponseHasRowCount: totalResponse && 'rowCount' in totalResponse,
+            totalResponseRowCount: totalResponse?.rowCount,
+            totalResponseRowsLength: totalResponse?.rows?.length,
+            totalResponseFirstRowValue: totalResponse?.rows?.[0]?.metricValues?.[0]?.value,
+            pagesResponseRowsLength: pagesResponse?.rows?.length,
+            dailyResponseRowsLength: dailyResponse?.rows?.length
+          });
+          
+          // The response from GA4 should be an object with rows and rowCount properties
+          // Promise.all already destructured it, so totalResponse IS the response object
+          console.log('GA4 pageviews response summary:', {
+            totalRows: totalResponse?.rows?.length || 0,
+            pagesRows: pagesResponse?.rows?.length || 0,
+            dailyRows: dailyResponse?.rows?.length || 0,
+            totalValue: totalResponse?.rows?.[0]?.metricValues?.[0]?.value,
+            totalRowCount: totalResponse?.rowCount,
+            pagesRowCount: pagesResponse?.rowCount,
+            dailyRowCount: dailyResponse?.rowCount,
             dateRange: `${startDate} to ${endDate}`,
-            property: propertyPath,
-            totalResponseType: Array.isArray(totalResponse) ? 'array' : typeof totalResponse,
-            totalResponseKeys: Object.keys(actualTotalResponse || {}),
-            totalResponseFull: JSON.stringify(actualTotalResponse, null, 2).substring(0, 2000),
-            metadata: actualTotalResponse?.metadata ? JSON.stringify(actualTotalResponse.metadata, null, 2).substring(0, 500) : 'no metadata',
-            // Check if rowCount exists and is > 0 even if rows array is empty
-            hasDataByRowCount: (actualTotalResponse?.rowCount || 0) > 0,
-            hasDataByRows: (actualTotalResponse?.rows?.length || 0) > 0
+            property: propertyPath
           });
           
           // CRITICAL: GA4 may return rowCount > 0 but empty rows array
@@ -323,40 +336,24 @@ export default async function handler(req, res) {
           }
 
         // Extract total - GA4 returns values as strings
-        // Based on logs, the response HAS data ("value": "57", "rowCount": 1) but we're not accessing it
-        // Let's try multiple ways to access it
+        // Based on logs, the response HAS data ("value": "57", "rowCount": 1)
+        // The response object should have rows array and rowCount property
         let total = 0;
         
-        // Method 1: Direct access
-        if (actualTotalResponse?.rowCount > 0 && actualTotalResponse?.rows?.length > 0) {
-          const totalValue = actualTotalResponse.rows[0].metricValues?.[0]?.value;
+        // Direct access - totalResponse should be the GA4 response object
+        if (totalResponse && totalResponse.rows && totalResponse.rows.length > 0) {
+          const totalValue = totalResponse.rows[0].metricValues?.[0]?.value;
           total = totalValue ? parseInt(totalValue) : 0;
-          console.log('Method 1 - Extracted from rows:', total, 'from value:', totalValue);
-        }
-        
-        // Method 2: If that didn't work, try accessing via array index (in case it's wrapped)
-        if (total === 0 && Array.isArray(actualTotalResponse) && actualTotalResponse[0]) {
-          const firstElement = actualTotalResponse[0];
-          if (firstElement?.rows?.length > 0) {
-            const totalValue = firstElement.rows[0].metricValues?.[0]?.value;
-            total = totalValue ? parseInt(totalValue) : 0;
-            console.log('Method 2 - Extracted from array[0]:', total);
-          }
-        }
-        
-        // Method 3: Try accessing rowCount and rows directly
-        if (total === 0) {
-          const rowCount = actualTotalResponse?.rowCount || (Array.isArray(actualTotalResponse) && actualTotalResponse[0]?.rowCount);
-          const rows = actualTotalResponse?.rows || (Array.isArray(actualTotalResponse) && actualTotalResponse[0]?.rows);
-          if (rowCount > 0 && rows && rows.length > 0) {
-            const totalValue = rows[0].metricValues?.[0]?.value;
-            total = totalValue ? parseInt(totalValue) : 0;
-            console.log('Method 3 - Extracted via fallback:', total);
-          }
-        }
-        
-        if (total === 0) {
-          console.log('No data extracted - rowCount:', actualTotalResponse?.rowCount, 'rows length:', actualTotalResponse?.rows?.length);
+          console.log('Extracted total from rows:', total, 'from value:', totalValue, 'rowCount:', totalResponse.rowCount);
+        } else if (totalResponse && totalResponse.rowCount > 0) {
+          // If rowCount > 0 but rows is empty, log it
+          console.warn('rowCount > 0 but rows array is empty or undefined', {
+            rowCount: totalResponse.rowCount,
+            rowsLength: totalResponse.rows?.length,
+            hasRows: 'rows' in totalResponse
+          });
+        } else {
+          console.log('No data: rowCount:', totalResponse?.rowCount, 'rows length:', totalResponse?.rows?.length);
         }
         console.log('Final total pageviews:', total);
 
