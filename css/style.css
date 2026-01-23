@@ -275,6 +275,7 @@ a:hover {
   background-color: rgba(244, 232, 212, 0.5);
   text-align: center;
   position: relative;
+  clear: right; /* Prevents overlap with right-floated images */
 }
 
 .bible-quote strong {

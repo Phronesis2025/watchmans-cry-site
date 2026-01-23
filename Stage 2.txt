@@ -58,14 +58,7 @@ VERY IMPORTANT RULES — FOLLOW EXACTLY:
 Here is the index-template.html structure to use as the base (do NOT change its overall layout, classes, images, or fixed content):
 
 <!DOCTYPE html>
-<!-- 
-   Deployment to Vercel (Jan 2026):
-   1. Push to GitHub repo
-   2. https://vercel.com → New Project → Import GitHub repo
-   3. Choose "Other" preset (static HTML)
-   4. Deploy → get instant *.vercel.app URL
-   Future edits → git commit & push = auto redeploy
--->
+
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
