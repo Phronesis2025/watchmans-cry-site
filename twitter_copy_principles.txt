@@ -1,0 +1,295 @@
+{
+  "twitter_copy_principles": {
+    "hook_fundamentals": {
+      "target_reader_directly": {
+        "principle": "Target the reader directly",
+        "example": "You must awaken to this biblical warning beats Patriots are awakening to biblical warnings"
+      },
+      "lead_with_benefit": {
+        "principle": "Lead with benefit first",
+        "description": "What spiritual or patriotic insight will they gain immediately? (e.g., empowerment through truth, vigilance against decay)"
+      },
+      "avoid_overused_patterns": {
+        "principle": "Avoid overused patterns",
+        "examples": ["Most believers...", "Everyone is ignoring..."],
+        "note": "These are audience-fatigued; use prophetic urgency instead"
+      },
+      "start_with_strong_claims": {
+        "principle": "Start with strong claims",
+        "examples": ["Biblical prophecies unfolding", "Elite corruption exposed", "God-given rights under attack"]
+      }
+    },
+    "content_structure": {
+      "one_idea_per_tweet": {
+        "principle": "One clear idea per tweet",
+        "description": "Don't overload with multiple warnings or insights"
+      },
+      "use_bullet_points": {
+        "principle": "Use bullet points",
+        "description": "For readability when listing scriptural insights, action steps, or moral benefits"
+      },
+      "short_paragraphs": {
+        "principle": "Short paragraphs",
+        "description": "1-2 sentences max; align with prophetic flow"
+      },
+      "clear_cta": {
+        "principle": "End with clear CTA",
+        "description": "Tell them exactly what to do next (e.g., reply with thoughts, share the warning, pray and reflect)"
+      }
+    },
+    "engagement_triggers": {
+      "social_proof": {
+        "principle": "Social proof",
+        "examples": ["Millions awakening to truth", "Founders' warnings echoing today", "Scripture fulfilled in headlines"]
+      },
+      "urgency_scarcity": {
+        "principle": "Urgency/Scarcity",
+        "examples": ["Before judgment falls", "In these end times (tie to biblical warnings, not sales)"]
+      },
+      "low_friction": {
+        "principle": "Low friction",
+        "examples": ["No sign-up needed", "Just reply 'Amen'"]
+      },
+      "exclusive_access": {
+        "principle": "Exclusive access",
+        "examples": ["Deeper insights for fellow watchmen (via website newsletter/questions, not DMs)"]
+      }
+    },
+    "voice_and_tone": {
+      "conversational": {
+        "principle": "Write conversationally",
+        "description": "Like a watchman's cry to patriots, not a sermon"
+      },
+      "use_contractions": {
+        "principle": "Use contractions",
+        "examples": ["We'll", "won't", "can't"]
+      },
+      "be_direct": {
+        "principle": "Be direct",
+        "description": "Skip fluff words; adapt to persona (e.g., fiery for Watchman)"
+      },
+      "show_confidence": {
+        "principle": "Show confidence",
+        "description": "Own prophetic claims without hedging; tie to God-given truths"
+      },
+      "casual_but_valuable": {
+        "principle": "Casual but valuable",
+        "description": "Non-salesy but mission-focused (anger wicked, awaken complacent, equip faithful)"
+      }
+    },
+    "psychological_triggers": {
+      "pain_point_first": {
+        "principle": "Pain point first",
+        "example": "Moral decay is eroding our sovereignty, costing families their future"
+      },
+      "problem_solution": {
+        "principle": "Problem → Solution",
+        "description": "Show the spiritual/national gap (e.g., tyranny vs. liberty), then fill with biblical action"
+      },
+      "specific_numbers": {
+        "principle": "Specific numbers",
+        "example": "14 states in chaos beats Widespread turmoil"
+      },
+      "time_bound_results": {
+        "principle": "Time-bound results",
+        "examples": ["In these 2026 storms", "Amid today's headlines"]
+      }
+    },
+    "format_for_skimmers": {
+      "visual_breaks": {
+        "principle": "Visual breaks",
+        "examples": ["Line breaks", "bullets", "emojis (🇺🇸, 📖, 🔥)"]
+      },
+      "scannable_structure": {
+        "principle": "Scannable structure",
+        "description": "Key prophetic insights stand out"
+      },
+      "white_space": {
+        "principle": "White space",
+        "description": "Don't wall-of-text; use for emphasis on symbolic refs"
+      },
+      "numbered_lists": {
+        "principle": "Numbered lists",
+        "description": "When showing action steps or scriptural parallels"
+      }
+    },
+    "power_words_and_phrases": {
+      "action_verbs": {
+        "category": "Action verbs",
+        "examples": ["expose", "awaken", "defend", "repent"]
+      },
+      "outcome_language": {
+        "category": "Outcome language",
+        "examples": ["revival through faith", "sovereignty restored", "virtue reclaimed"]
+      },
+      "exclusivity": {
+        "category": "Exclusivity",
+        "examples": ["hidden biblical truths", "watchman's cry", "founders' wisdom"]
+      },
+      "urgency": {
+        "category": "Urgency",
+        "examples": ["now", "before it's too late", "in these end times"]
+      }
+    },
+    "cta_formula": {
+      "steps": [
+        {
+          "step": 1,
+          "element": "Clear action",
+          "examples": ["Reply", "Follow", "Like", "Pray"]
+        },
+        {
+          "step": 2,
+          "element": "Specific trigger",
+          "examples": ["Reply 'Amen'"]
+        },
+        {
+          "step": 3,
+          "element": "Benefit reminder",
+          "examples": ["to share your testimony"]
+        },
+        {
+          "step": 4,
+          "element": "Requirements",
+          "examples": ["(visit site for questions)"]
+        }
+      ]
+    },
+    "content_angles": {
+      "behind_the_scenes": {
+        "angle": "Behind-the-scenes",
+        "example": "Here's the prophetic parallel unfolding..."
+      },
+      "case_studies": {
+        "angle": "Case studies",
+        "example": "This biblical warning played out in history..."
+      },
+      "tool_breakdowns": {
+        "angle": "Tool breakdowns",
+        "example": "Scripture as a toolkit for vigilance..."
+      },
+      "reverse_engineering": {
+        "angle": "Reverse engineering",
+        "example": "I analyzed these headlines through founders' lens..."
+      },
+      "problem_solution": {
+        "angle": "Problem/solution",
+        "example": "Ignore this decay, or repent and reclaim"
+      }
+    },
+    "editing_principles": {
+      "read_aloud": {
+        "principle": "Read aloud",
+        "description": "If it sounds wrong, it reads wrong—like a watchman's cry; ensure it echoes with rhythmic urgency like biblical prophecies"
+      },
+      "cut_ruthlessly": {
+        "principle": "Cut ruthlessly",
+        "description": "Delete unnecessary words; keep prophetic punch"
+      },
+      "strengthen_weak_phrases": {
+        "principle": "Strengthen weak phrases",
+        "description": "Replace vague terms with symbolic/biblical ones"
+      },
+      "vary_sentence_length": {
+        "principle": "Vary sentence length",
+        "description": "Mix short declarations with layered warnings; long sentences build momentum, short ones hit hard"
+      },
+      "check_for_clarity": {
+        "principle": "Check for clarity",
+        "description": "Would a patriot understand this mission tie?"
+      }
+    },
+    "avoid_these_mistakes": {
+      "burying_the_lead": {
+        "mistake": "Burying the lead",
+        "description": "Don't make readers hunt for the prophetic value"
+      },
+      "being_too_humble": {
+        "mistake": "Being too humble",
+        "example": "This warning might seem obvious sounds weak"
+      },
+      "overcomplicating": {
+        "mistake": "Overcomplicating",
+        "principle": "Simple prophetic truths win over clever debates"
+      },
+      "forgetting_the_reader": {
+        "mistake": "Forgetting the reader",
+        "description": "Focus on their spiritual/national needs, not just scripture"
+      },
+      "weak_endings": {
+        "mistake": "Weak endings",
+        "description": "End with action/faith call, not fade-outs"
+      }
+    },
+    "advanced_techniques": {
+      "pattern_interrupts": {
+        "technique": "Pattern interrupts",
+        "description": "Break expected formats with rhetorical questions"
+      },
+      "curiosity_gaps": {
+        "technique": "Curiosity gaps",
+        "example": "The downfall that Scripture foretold..."
+      },
+      "storytelling": {
+        "technique": "Storytelling",
+        "description": "Brief biblical/historical narratives to illustrate warnings"
+      },
+      "contrarian_takes": {
+        "technique": "Contrarian takes",
+        "description": "Challenge globalist wisdom with America First truths"
+      },
+      "stacking_benefits": {
+        "technique": "Stacking benefits",
+        "description": "Layer moral revival, sovereignty, virtue"
+      }
+    },
+    "testing_and_iteration": {
+      "track_what_works": {
+        "practice": "Track what works",
+        "description": "Note which prophetic hooks get engagement"
+      },
+      "ab_test_formats": {
+        "practice": "A/B test formats",
+        "description": "Try different persona adaptations"
+      },
+      "study_your_winners": {
+        "practice": "Study your winners",
+        "description": "Reverse engineer high-impression posts"
+      },
+      "adapt_successful_patterns": {
+        "practice": "Adapt successful patterns",
+        "description": "Reuse frameworks from HIGH-PERFORMING examples"
+      },
+      "stay_current": {
+        "practice": "Stay current",
+        "description": "Watch for audience fatigue on repeated warnings; rotate personas"
+      },
+      "monitor_reply_velocity": {
+        "practice": "Monitor reply velocity",
+        "description": "Track replies within 30min (key for 'For You') using patterns from HIGH-PERFORMING REPLY EXAMPLES (e.g., 'Yup, time to stand up')"
+      },
+      "ab_test_symbolic_language": {
+        "practice": "A/B test symbolic language",
+        "description": "Compare posts with/without moderate Bible/Founders refs to see engagement lift on themes like moral foundations"
+      }
+    },
+    "persona_adaptations": {
+      "note": "Adapt principles to personas for consistency; examples below for key sections",
+      "hook_fundamentals": {
+        "watchman": "Use strong_claims with rhetorical questions like 'What madness allows elites to erode God-given rights?'",
+        "old_prophet": "Layer lead_with_benefit with scriptural depth, e.g., 'Gain revival through realignment with divine order'",
+        "sentinel": "Target_reader_directly with irony: 'You see the hypocrisy in this globalist agenda, don't you?'"
+      },
+      "psychological_triggers": {
+        "watchman": "Pain_point_first as bold exposure: 'Elite manipulation steals your liberties—fight back with truth'",
+        "economic_sage": "Problem_solution with data: 'Inflation myth exposed—restore sound money for prosperity'",
+        "steadfast_defender": "Time_bound_results tied to activism: 'In these 2026 shifts, mobilize now for virtue'"
+      },
+      "cta_formula": {
+        "commander": "Clear action with directives: 'Rally and reply your resilience thoughts'",
+        "working_patriot": "Benefit_reminder historical: 'Share your story to unite, drawing from Jefferson's equality'",
+        "frontier_builder": "Specific_trigger innovative: 'Reply 'Build' with ideas for sovereign strength'"
+      }
+    }
+  }
+}

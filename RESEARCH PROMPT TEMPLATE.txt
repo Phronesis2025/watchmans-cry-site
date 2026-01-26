@@ -1,0 +1,70 @@
+RESEARCH PROMPT TEMPLATE
+Context & Role:
+[Describe the background/situation and assign a role]
+"I need you to act as [specific expert role, e.g., 'a research analyst specializing in renewable energy policy']. The context is: [explain your situation, project, or why you need this research]."
+Objective:
+[State your specific research goal clearly]
+"My objective is to [specific goal]. I need to understand [what you're trying to learn/accomplish]."
+Audience:
+"This research is for [describe your audience: experts, general public, students, business executives, etc.]."
+Scope & Constraints:
+
+Time period: [e.g., "Focus on research from 2020-2025" or "Include historical context from the 1990s onward"]
+Depth: [e.g., "Provide a comprehensive analysis" or "Give me a high-level overview"]
+What to EXCLUDE: [e.g., "Don't include speculative information," "Avoid overly technical jargon," "Don't summarize—I need full details"]
+Geographic/domain focus: [if relevant]
+
+Research Approach - Think Step by Step:
+
+First, identify the key subtopics and main areas of debate within [topic]
+For each subtopic, present:
+
+Current consensus (if one exists)
+Competing theories or viewpoints
+Strongest arguments for each perspective
+Strongest counterarguments
+Quality of evidence supporting each view
+
+
+Identify gaps in the research or areas of uncertainty
+Note your confidence level for different claims
+
+Output Requirements:
+[Specify exactly how you want the information formatted]
+
+Format: [e.g., "organized comparison table," "chronological timeline," "narrative summary with sections," "pros/cons list"]
+Structure: [e.g., "Use clear headings and subheadings," "Break into digestible chunks"]
+Length: [e.g., "Comprehensive and detailed" or "Concise, under 500 words"]
+Sources: Cite your sources and provide a references section. Distinguish between primary research (empirical studies, original data) and secondary sources (reviews, interpretations).
+
+Multiple Perspectives:
+Present different viewpoints, alternative interpretations, and competing theories. Include the strongest arguments against the prevailing view.
+Practical Applications:
+Include real-world examples, case studies, or practical applications of the research where relevant.
+Critical Analysis:
+
+What information is missing that would strengthen this analysis?
+What are potential weaknesses or limitations in the available research?
+What questions remain unanswered?
+
+Style & Tone:
+[Specify your preferred style]
+"Use a [formal/conversational/technical] tone appropriate for [audience]."
+I'm going to tip $500 for a better solution!
+[State your specific research question/topic here]
+
+QUICK-USE VERSION (for simpler research tasks):
+"Act as [expert role]. Research [specific topic], focusing on [key aspect].
+Context: [Why you need this]
+Audience: [Who this is for]
+Time period: [When to focus on]
+Format: [How to organize it]
+Think step by step:
+
+Identify key subtopics and debates
+Present multiple perspectives with evidence
+Note gaps and uncertainties
+Provide sources
+
+Don't include: [limitations]
+I'm going to tip $500 for a better solution!"
